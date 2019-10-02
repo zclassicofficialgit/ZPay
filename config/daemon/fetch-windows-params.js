@@ -95,7 +95,7 @@ export default (): Promise<*> => new Promise((resolve, reject) => {
 
     await Promise.all(
       FILES.map(async (file) => {
-        const pathToSave = path.join(app.getPath('userData'), '..', 'ZclassicParams', file.name);
+        const pathToSave = path.join(app.getPath('userData'), '..', 'ZcashParams', file.name);
 
         const [cannotAccess] = await eres(
           util.promisify(fs.access)(pathToSave, fs.constants.F_OK),

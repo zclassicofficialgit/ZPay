@@ -158,7 +158,7 @@ export const Component = ({
           <DetailContainer>
             <UnconfirmedLabel value='UNCONFIRMED' isBold size={theme.fontSize.small} />
             <UnconfirmedValue
-              value={`${coinName} ${formatNumber({ value: transparent })}`}
+              value={`${coinName} ${formatNumber({ value: unconfirmed })}`}
               isBold
               size='16px'
             />

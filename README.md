@@ -11,6 +11,13 @@ ZPay is a Sapling-enabled shielded-address-first Zclassic wallet, featuring cros
 
 ![Zepio Wallet](https://raw.githubusercontent.com/ZcashFoundation/zepio-docs/develop/docz/assets/dashboard.png)
 
+WARNING: Be careful when using this software! It is highly experimental. Always have your private keys saved securely. We STRONGLY recommend testing the wallet out on the testnet before using it for live transactions to familiarize yourself with its operation.
+
+Always test with small amounts first! It is your responsibility to properly handle your private keys.
+For best security, it is recommended to build the entire ZPay wallet by yourself, directly from GitHub.
+
+Encryption: Wallet encryption is currently disabled by Zclassicd. You should use full-disk encryption (or encryption of your home directory) to protect your wallet.dat file, and should assume that even unprivileged users who are running on your O/S can read your wallet.dat file.
+
 ## Stack Information
 
 List of the main open source libraries and technologies used in building **ZPay**:
@@ -119,7 +126,11 @@ yarn test e2e
 
 ## Contributing
 
-In order to contribute and submit PRs to improve the **Zepio** codebase, please check our [CONTRIBUTING](https://github.com/zclassicofficialgit/ZPay/blob/1.0/CONTRIBUTING.md) guide.
+In order to contribute and submit PRs to improve the **ZPay** codebase, please check our [CONTRIBUTING](https://github.com/zclassicofficialgit/ZPay/blob/1.0/CONTRIBUTING.md) guide.
+
+## Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## License
 

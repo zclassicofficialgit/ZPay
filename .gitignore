@@ -8,3 +8,5 @@ build
 coverage
 flow-typed
 .env
+__tests__
+__mocks__

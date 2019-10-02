@@ -3,8 +3,8 @@
 import { openExternal } from './utils/open-external';
 import packageJson from '../package.json';
 
-const DOCS_URL = 'https://zepiowallet.com/';
-const REPOSITORY_URL = 'https://github.com/ZclassicFoundation/zepio/issues';
+const DOCS_URL = 'https://zclassic-ce.org/';
+const REPOSITORY_URL = 'https://github.com/ZclassicFoundation/ZPay/issues';
 
 const menu = [
   {
