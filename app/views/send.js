@@ -775,7 +775,7 @@ class Component extends PureComponent<Props, State> {
     const fixedAmount = isEmpty || new BigNumber(amount).eq(0) ? 0 : this.getAmountWithFee();
     const coinName = getCoinName();
 
-    const zcBalance = formatNumber({ value: balance, append: `${coinName} ` });
+    const zclBalance = formatNumber({ value: balance, append: `${coinName} ` });
     const zclBalanceInUsd = formatNumber({
       value: new BigNumber(balance).times(zclPrice).toNumber(),
       append: 'USD $',

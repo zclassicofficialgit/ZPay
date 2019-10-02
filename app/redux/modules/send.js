@@ -8,7 +8,7 @@ export const SEND_TRANSACTION_ERROR = 'SEND_TRANSACTION_ERROR';
 export const RESET_SEND_TRANSACTION = 'RESET_SEND_TRANSACTION';
 export const VALIDATE_ADDRESS_SUCCESS = 'VALIDATE_ADDRESS_SUCCESS';
 export const VALIDATE_ADDRESS_ERROR = 'VALIDATE_ADDRESS_SUCCESS';
-export const LOAD_ZEC_PRICE = 'LOAD_ZEC_PRICE';
+export const LOAD_ZCL_PRICE = 'LOAD_ZCL_PRICE';
 export const LOAD_ADDRESS_BALANCE_SUCCESS = 'LOAD_ADDRESS_BALANCE_SUCCESS';
 export const LOAD_ADDRESS_BALANCE_ERROR = 'LOAD_ADDRESS_BALANCE_ERROR';
 
@@ -48,8 +48,8 @@ export const validateAddressError = () => ({
   payload: {},
 });
 
-export const loadZECPrice = ({ value }: { value: number }) => ({
-  type: LOAD_ZEC_PRICE,
+export const loadZCLPrice = ({ value }: { value: number }) => ({
+  type: LOAD_ZCL_PRICE,
   payload: {
     value,
   },
@@ -123,7 +123,7 @@ export default (state: State = initialState, action: Action): State => {
         ...state,
         isToAddressValid: false,
       };
-    case LOAD_ZEC_PRICE:
+    case LOAD_ZCL_PRICE:
       return { ...state, zclPrice: action.payload.value };
     case LOAD_ADDRESS_BALANCE_SUCCESS:
       return { ...state, addressBalance: action.payload.balance };

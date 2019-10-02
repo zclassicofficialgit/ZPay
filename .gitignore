@@ -1,0 +1,10 @@
+node_modules
+.vscode
+dist
+.DS_Store
+flow-coverage
+build
+.docz
+coverage
+flow-typed
+.env
