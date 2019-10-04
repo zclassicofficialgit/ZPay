@@ -1,7 +1,7 @@
 {
   "name": "ZPay",
   "productName": "ZPay",
-  "version": "0.8.0",
+  "version": "1.0.0",
   "description": "ZPay | Cross-platform sapling-enabled full-node Zclassic wallet",
   "main": "config/main.js",
   "homepage": "https://zclassic-ce.org",

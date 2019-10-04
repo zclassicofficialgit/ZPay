@@ -26,8 +26,8 @@ const manatee = '#8E8E96';
 const error = '#FF6C6C';
 const success = '#66BE54';
 const cornflowerBlue = '#5684EB';
-const saffron = '#F4B728';
-const brightSun = '#FFE240';
+const saffron = '#F45128';
+const brightSun = '#FF8340';
 const offBrand = 'rgba(238,201,76,0.65)';
 
 export const LIGHT_COLORS = {

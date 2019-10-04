@@ -23,8 +23,8 @@ const woodsmoke = '#222222';
 const heavyMetal = '#0A0A0A';
 
 // Colors
-const saffron = '#F4B728';
-const brightSun = '#FFE240';
+const saffron = '#F45128';
+const brightSun = '#FF8340';
 const offBrand = 'rgba(238,201,76,0.65)';
 const error = '#FF6C6C';
 const success = '#6AEAC0';

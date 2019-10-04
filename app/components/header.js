@@ -20,12 +20,12 @@ const Wrapper = styled.div`
 const LogoWrapper = styled.div`
   height: ${props => props.theme.headerHeight};
   width: ${props => props.theme.sidebarWidth};
-  background-image: linear-gradient(
-    to right,
-    ${props => props.theme.colors.sidebarLogoGradientBegin},
-    ${props => props.theme.colors.sidebarLogoGradientEnd}
+  //background-image: linear-gradient(
+  //  to right,
+  //  ${props => props.theme.colors.sidebarLogoGradientBegin},
+  //  ${props => props.theme.colors.sidebarLogoGradientEnd}
   );
-  margin-bottom: 20px;
+ // margin-bottom: 20px;
 `;
 
 const TitleWrapper = styled.div`
@@ -66,11 +66,11 @@ export const HeaderComponent = ({ title }: Props) => (
       <ZclassicLogo />
     </LogoWrapper>
     <TitleWrapper>
-      <TitleRow alignItems='center' justifyContent='space-around'>
+      <TitleRow alignItems='right' justifyContent='space-around'>
         <Title value={title} />
         <StatusPillContainer />
       </TitleRow>
-      <Divider opacity={0.2} />
+      <Divider opacity={0.1} />
     </TitleWrapper>
   </Wrapper>
 );
