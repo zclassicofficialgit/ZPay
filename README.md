@@ -9,6 +9,8 @@ ZPay is a Sapling-enabled shielded-address-first Zclassic wallet, featuring cros
 
 ### [Latest Release](https://github.com/zclassicofficialgit/ZPay)
 
+![ZPay Wallet](https://github.com/zclassicofficialgit/ZPay/assets/dashboard.png)
+
 WARNING: Be careful when using this software! It is highly experimental. Always have your private keys saved securely. We STRONGLY recommend testing the wallet out on the testnet before using it for live transactions to familiarize yourself with its operation.
 
 Always test with small amounts first! It is your responsibility to properly handle your private keys.
