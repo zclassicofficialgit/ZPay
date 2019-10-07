@@ -14,5 +14,5 @@ export const locateZclassicConf = () => {
     return path.join(app.getPath('home'), '.zclassic', 'zclassic.conf');
   }
 
-  return path.join(app.getPath('appData'), 'Zclassic', 'zclassic.conf');
+  return path.join(app.getPath('appData'), 'ZClassic', 'zclassic.conf');
 };

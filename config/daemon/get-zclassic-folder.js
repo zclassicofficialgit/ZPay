@@ -14,5 +14,5 @@ export const getZclassicFolder = () => {
     return path.join(app.getPath('home'), '.zclassic');
   }
 
-  return path.join(app.getPath('appData'), 'Zclassic');
+  return path.join(app.getPath('appData'), 'ZClassic');
 };
