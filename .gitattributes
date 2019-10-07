@@ -1,0 +1,2 @@
+zclassicd filter=lfs diff=lfs merge=lfs -text
+zclassicd.exe filter=lfs diff=lfs merge=lfs -text
