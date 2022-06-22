@@ -230,7 +230,7 @@
     "electron-updater": "^4.0.4",
     "eres": "^1.0.1",
     "find-process": "^1.2.1",
-    "got": "^9.6.0",
+    "got": "^11.8.5",
     "history": "^4.7.2",
     "humanize-duration": "^3.18.0",
     "lodash.flow": "^3.5.0",
