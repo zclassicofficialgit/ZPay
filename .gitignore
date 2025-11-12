@@ -10,3 +10,43 @@ flow-typed
 .env
 __tests__
 __mocks__
+
+# Claude AI assistant files
+.claude/
+
+# Build artifacts and logs
+*.log
+yarn-error.log
+npm-debug.log*
+build-mac.log
+zpay-build*.log
+
+# Documentation files (local development)
+*_INSTRUCTIONS.md
+*_REVIEW.md
+*_PLAN.md
+*_STATUS.md
+*_SUMMARY.md
+CHANGES_REVIEW.md
+IMPLEMENTATION_SUMMARY.md
+MIGRATION_SUMMARY.md
+SECURITY_IMPROVEMENTS.md
+
+# DMG files
+*.dmg
+
+# Backup files
+*.backup
+*-e
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Private/sensitive files
+wallet.dat*
+*.pem
+*.key
+*password*
+*secret*
+credentials.json
