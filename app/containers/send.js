@@ -24,6 +24,7 @@ import { filterObjectNullKeys } from '../utils/filter-object-null-keys';
 import { asyncMap } from '../utils/async-map';
 import { getLatestAddressKey } from '../utils/get-latest-address-key';
 import { saveShieldedTransaction } from '../../services/shielded-transactions';
+import { validateAmount, validateFee, validateMemo } from '../utils/validate-transaction-input';
 
 import type { AppState } from '../types/app-state';
 import type { Dispatch, FetchState } from '../types/redux';
@@ -75,6 +76,41 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
   sendTransaction: async ({
     from, to, amount, fee, memo,
   }) => {
+    // Get balance of the 'from' address (works for both t and z addresses)
+    let balance = 0;
+    if (from.startsWith('z')) {
+      const [balanceErr, zBalance] = await eres(rpc.z_getbalance(from));
+      if (balanceErr) {
+        return dispatch(sendTransactionError({ error: 'Unable to fetch balance for sending address' }));
+      }
+      balance = zBalance;
+    } else {
+      // For transparent addresses, sum up unspent outputs
+      const [unspentErr, unspentOutputs] = await eres(rpc.listunspent(0, 9999999, [from]));
+      if (unspentErr) {
+        return dispatch(sendTransactionError({ error: 'Unable to fetch balance for sending address' }));
+      }
+      balance = unspentOutputs.reduce((sum, utxo) => sum + utxo.amount, 0);
+    }
+
+    // Validate amount against actual balance
+    const amountValidation = validateAmount(amount, balance);
+    if (!amountValidation.isValid) {
+      return dispatch(sendTransactionError({ error: amountValidation.error || 'Invalid amount' }));
+    }
+
+    // Validate fee
+    const feeValidation = validateFee(fee);
+    if (!feeValidation.isValid) {
+      return dispatch(sendTransactionError({ error: feeValidation.error || 'Invalid fee' }));
+    }
+
+    // Validate memo
+    const memoValidation = validateMemo(memo);
+    if (!memoValidation.isValid) {
+      return dispatch(sendTransactionError({ error: memoValidation.error || 'Invalid memo' }));
+    }
+
     dispatch(sendTransaction());
 
     // $FlowFixMe
@@ -166,22 +202,51 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
 
     const [zAddressesErr, zAddresses] = await eres(rpc.z_listaddresses());
 
-    const [tAddressesErr, transparentAddresses] = await eres(rpc.getaddressesbyaccount(''));
+    if (zAddressesErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
 
-    if (zAddressesErr || tAddressesErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
+    // Helper function to get balance for any address type
+    const getAddressBalance = async (address) => {
+      if (address.startsWith('z')) {
+        return rpc.z_getbalance(address);
+      }
+      // For transparent addresses, sum unspent outputs
+      const unspentOutputs = await rpc.listunspent(0, 9999999, [address]);
+      return unspentOutputs.reduce((sum, utxo) => sum + utxo.amount, 0);
+    };
+
+    // Get ALL transparent addresses with balance by checking listunspent
+    const [unspentErr, allUnspent] = await eres(rpc.listunspent(0));
+    if (unspentErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
+
+    // Group unspent outputs by address and sum balances
+    const transparentBalances = {};
+    allUnspent.forEach((utxo) => {
+      if (!transparentBalances[utxo.address]) {
+        transparentBalances[utxo.address] = 0;
+      }
+      transparentBalances[utxo.address] += utxo.amount;
+    });
+
+    // Convert to array of addresses with balance > 0
+    const transparentAddresses = Object.entries(transparentBalances)
+      .filter(([, balance]) => balance > 0)
+      .map(([addr, balance]) => ({ address: addr, balance }));
 
     const latestZAddress = zAddresses.find(addr => addr === store.get(getLatestAddressKey('shielded'))) || zAddresses[0];
 
-    const latestTAddress = transparentAddresses.find(addr => addr === store.get(getLatestAddressKey('transparent')))
+    const latestTAddress = transparentAddresses.find(({ address }) => address === store.get(getLatestAddressKey('transparent')))
       || transparentAddresses[0];
 
     const allAddresses = await asyncMap(
       [
         ...zAddresses.filter(cur => cur !== latestZAddress),
-        ...transparentAddresses.filter(cur => cur !== latestTAddress),
+        ...transparentAddresses.filter(
+          ({ address }) => address !== (latestTAddress ? latestTAddress.address : null),
+        ),
       ],
-      async (address) => {
-        const [err, response] = await eres(rpc.z_getbalance(address));
+      async (item) => {
+        const address = typeof item === 'string' ? item : item.address;
+        const [err, response] = await eres(getAddressBalance(address));
 
         if (!err && new BigNumber(response).isGreaterThan(0)) return { address, balance: response };
 
@@ -195,11 +260,11 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
           latestZAddress
             ? {
               address: latestZAddress,
-              balance: await rpc.z_getbalance(latestZAddress),
+              balance: await getAddressBalance(latestZAddress),
             }
             : null,
           latestTAddress
-            ? { address: latestTAddress, balance: await rpc.z_getbalance(latestTAddress) }
+            ? { address: latestTAddress.address, balance: latestTAddress.balance }
             : null,
           ...allAddresses,
         ].filter(Boolean),
@@ -212,9 +277,17 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
     }),
   ),
   getAddressBalance: async ({ address }: { address: string }) => {
-    const [err, balance] = await eres(rpc.z_getbalance(address));
-
-    if (err) return dispatch(loadAddressBalanceError({ error: "Can't load your balance address" }));
+    let balance = 0;
+    if (address.startsWith('z')) {
+      const [err, zBalance] = await eres(rpc.z_getbalance(address));
+      if (err) return dispatch(loadAddressBalanceError({ error: "Can't load your balance address" }));
+      balance = zBalance;
+    } else {
+      // For transparent addresses, sum unspent outputs
+      const [err, unspentOutputs] = await eres(rpc.listunspent(0, 9999999, [address]));
+      if (err) return dispatch(loadAddressBalanceError({ error: "Can't load your balance address" }));
+      balance = unspentOutputs.reduce((sum, utxo) => sum + utxo.amount, 0);
+    }
 
     return dispatch(loadAddressBalanceSuccess({ balance }));
   },

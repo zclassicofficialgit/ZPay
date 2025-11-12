@@ -2,7 +2,6 @@
 
 import eres from 'eres';
 import { connect } from 'react-redux';
-import electron from 'electron'; // eslint-disable-line
 
 import electronStore from '../../config/electron-store';
 import { ZCLASSIC_NETWORK } from '../constants/zclassic-network';
@@ -49,13 +48,15 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
       }),
     );
   },
-  updateZclassicNetwork: (newNetwork) => {
+  updateZclassicNetwork: async (newNetwork) => {
     electronStore.set(ZCLASSIC_NETWORK, newNetwork);
 
-    electron.remote.app.relaunch({
-      args: Array.from(new Set(electron.remote.process.argv.slice(1).concat(['--relaunch']))),
-    });
-    electron.remote.app.quit();
+    // Use IPC instead of remote
+    const argv = await window.electronAPI.getArgv();
+    const relaunchArgs = Array.from(new Set(argv.slice(1).concat(['--relaunch'])));
+
+    await window.electronAPI.relaunchApp(relaunchArgs);
+    await window.electronAPI.quitApp();
   },
 });
 

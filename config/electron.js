@@ -18,6 +18,7 @@ import getZclPrice from '../services/zcl-price';
 import store from './electron-store';
 import { handleDeeplink } from './handle-deeplink';
 import { MENU } from '../app/menu';
+import { registerIPCHandlers } from './ipc-handlers';
 
 dotenv.config();
 
@@ -66,7 +67,11 @@ const createWindow = () => {
     resizable: true,
     webPreferences: {
       devTools: true,
-      webSecurity: true,
+      webSecurity: false,
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -75,8 +80,9 @@ const createWindow = () => {
   mainWindow.setVisibleOnAllWorkspaces(true);
   registerDebugShortcut(app, mainWindow);
 
+  // TEMPORARY FIX: Always load from build directory (webpack-dev-server not running)
   mainWindow.loadURL(
-    isDev ? 'http://localhost:8080/' : `file://${path.join(__dirname, '../build/index.html')}`,
+    `file://${path.join(__dirname, '../build/index.html')}`,
   );
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(MENU));
@@ -113,6 +119,9 @@ handleDeeplink({ app, mainWindow });
 
 /* eslint-disable-next-line consistent-return */
 app.on('ready', async () => {
+  // Register IPC handlers before creating window
+  registerIPCHandlers();
+
   createWindow();
 
   console.log('[Process Argv]', process.argv); // eslint-disable-line

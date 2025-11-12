@@ -2,7 +2,6 @@
 
 import { connect } from 'react-redux';
 import eres from 'eres';
-import { BigNumber } from 'bignumber.js';
 
 import { updateNodeSyncStatus } from '../redux/modules/app';
 import { StatusPill } from '../components/status-pill';
@@ -46,10 +45,17 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
 
     const newProgress = blockchaininfo.verificationprogress * 100;
 
+    // Fix: Consider synced when blocks == headers (fully caught up with network)
+    // verificationprogress is unreliable for Zclassic and gets stuck at ~66%
+    const isSynced = blockchaininfo.blocks === blockchaininfo.headers;
+
+    // eslint-disable-next-line no-console
+    console.log('[ZPay Sync Fix] blocks:', blockchaininfo.blocks, 'headers:', blockchaininfo.headers, 'isSynced:', isSynced);
+
     dispatch(
       updateNodeSyncStatus({
-        nodeSyncProgress: newProgress,
-        nodeSyncType: new BigNumber(newProgress).gt(99.99)
+        nodeSyncProgress: isSynced ? 100 : newProgress,
+        nodeSyncType: isSynced
           ? NODE_SYNC_TYPES.READY
           : NODE_SYNC_TYPES.SYNCING,
       }),

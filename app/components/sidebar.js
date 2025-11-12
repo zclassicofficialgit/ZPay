@@ -2,7 +2,6 @@
 
 /* eslint-disable max-len */
 import React from 'react';
-import electron from 'electron'; // eslint-disable-line import/no-extraneous-dependencies
 import styled, { withTheme } from 'styled-components';
 import type { Location, RouterHistory } from 'react-router-dom';
 
@@ -17,7 +16,7 @@ const Wrapper = styled.div`
   font-family: ${props => props.theme.fontFamily};
   background-color: ${props => props.theme.colors.sidebarBg};
   border-right: 1px solid ${props => props.theme.colors.sidebarBorderRight};
-  padding-top: 15px;
+  padding-top: 40px;
   position: relative;
 `;
 
@@ -140,7 +139,9 @@ export const Component = ({
           ? location.pathname === item.route
           : location.pathname.startsWith(item.route);
 
-        if (electron.remote.process.env.NODE_ENV !== 'test') {
+        // Check if we should hide console route for non-embedded daemon
+        // In production builds, process.env.NODE_ENV is replaced by webpack
+        if (process.env.NODE_ENV !== 'test') {
           if (!embeddedDaemon && item.route === '/console') return null;
         }
 

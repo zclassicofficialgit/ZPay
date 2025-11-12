@@ -1,17 +1,20 @@
 // @flow
 import React from 'react';
-import styled, { withTheme } from 'styled-components';
+import styled from 'styled-components';
 
-import zclLogo from '../assets/images/zclassic-logo.png';
+import zclLogo from '../../build-assets/icon.png';
 
 const ZclImg = styled.img`
-	display: block;
-  	margin-left: auto;
-  	margin-right: auto;
-  	width: 50%;
-	height: 90%;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  margin-top: 15px;
+  margin-bottom: 10px;
 `;
 
 export const ZclassicLogo = () => (
-  <ZclImg src={zclLogo} />
+  <ZclImg src={zclLogo} alt='ZPay Logo' />
 );

@@ -208,7 +208,7 @@ const runDaemon: () => Promise<?ChildProcess> = () => new Promise(async (resolve
     password: store.get('rpcpassword'),
   };
 
-  if (isDev) log('Rpc Credentials', rpcCredentials);
+  if (isDev) log('Rpc Credentials configured (credentials hidden for security)');
 
   const childProcess = cp.spawn(
     processName,

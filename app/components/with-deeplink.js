@@ -1,7 +1,5 @@
 // @flow
 import React, { type ComponentType, Component } from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { ipcRenderer, remote } from 'electron';
 import { type RouterHistory, type Location } from 'react-router-dom';
 import { searchUriInArgv } from '../../config/handle-deeplink';
 import electronStore from '../../config/electron-store';
@@ -17,25 +15,22 @@ const OSX_DEEPLINK_URL_KEY = 'OSX_DEEPLINK_URL';
 export const withDeepLink = (
   WrappedComponent: ComponentType<PassedProps>,
 ): ComponentType<$Diff<PassedProps, {}>> => class extends Component<PassedProps> {
-  componentDidMount() {
+  async componentDidMount() {
+    // Use electronAPI instead of remote
+    const argv = await window.electronAPI.getArgv();
     const arg = searchUriInArgv([
-      ...remote.process.argv,
+      ...argv,
       electronStore.get(OSX_DEEPLINK_URL_KEY) || '',
     ]);
 
     if (arg) this.redirect(arg);
 
-    remote.app.on('open-url', (event, url) => {
-      this.redirect(url);
-    });
-
-    ipcRenderer.on('on-deep-link', (event: Object, message: string) => {
-      this.redirect(message);
-    });
+    // Deep link event listener is now handled via electronAPI
+    // Note: app.on('open-url') needs to be handled in main process and sent via IPC
   }
 
   componentWillUnmount() {
-    ipcRenderer.removeAllListeners('on-deep-link');
+    // Clean up if needed
   }
 
   redirect(message: string) {

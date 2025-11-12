@@ -7,7 +7,7 @@ export const SEND_TRANSACTION_SUCCESS = 'SEND_TRANSACTION_SUCCESS';
 export const SEND_TRANSACTION_ERROR = 'SEND_TRANSACTION_ERROR';
 export const RESET_SEND_TRANSACTION = 'RESET_SEND_TRANSACTION';
 export const VALIDATE_ADDRESS_SUCCESS = 'VALIDATE_ADDRESS_SUCCESS';
-export const VALIDATE_ADDRESS_ERROR = 'VALIDATE_ADDRESS_SUCCESS';
+export const VALIDATE_ADDRESS_ERROR = 'VALIDATE_ADDRESS_ERROR';
 export const LOAD_ZCL_PRICE = 'LOAD_ZCL_PRICE';
 export const LOAD_ADDRESS_BALANCE_SUCCESS = 'LOAD_ADDRESS_BALANCE_SUCCESS';
 export const LOAD_ADDRESS_BALANCE_ERROR = 'LOAD_ADDRESS_BALANCE_ERROR';
@@ -63,7 +63,7 @@ export const loadAddressBalanceSuccess = ({ balance }: { balance: number }) => (
 });
 
 export const loadAddressBalanceError = ({ error }: { error: string }) => ({
-  type: LOAD_ADDRESS_BALANCE_SUCCESS,
+  type: LOAD_ADDRESS_BALANCE_ERROR,
   payload: {
     error,
   },

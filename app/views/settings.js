@@ -1,13 +1,8 @@
 // @flow
 /* eslint-disable no-unused-vars */
 /* eslint-disable import/no-extraneous-dependencies */
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import { promisify } from 'util';
 import React, { PureComponent } from 'react';
 import styled from 'styled-components';
-import electron from 'electron';
 import dateFns from 'date-fns';
 import eres from 'eres';
 
@@ -228,18 +223,22 @@ export class SettingsView extends PureComponent<Props, State> {
     this.setState(initialState);
   };
 
-  getWalletFolderPath = () => {
-    const { app } = electron.remote;
+  getWalletFolderPath = async () => {
+    // Use electronAPI from preload instead of remote
+    const platform = window.electronAPI.node.os.platform();
 
-    if (os.platform() === 'darwin') {
-      return path.join(app.getPath('appData'), 'Zclassic');
+    if (platform === 'darwin') {
+      const appData = await window.electronAPI.getAppPath('appData');
+      return window.electronAPI.node.path.join(appData, 'Zclassic');
     }
 
-    if (os.platform() === 'linux') {
-      return path.join(app.getPath('home'), '.zclassic');
+    if (platform === 'linux') {
+      const home = await window.electronAPI.getAppPath('home');
+      return window.electronAPI.node.path.join(home, '.zclassic');
     }
 
-    return path.join(app.getPath('appData'), 'ZClassic');
+    const appData = await window.electronAPI.getAppPath('appData');
+    return window.electronAPI.node.path.join(appData, 'ZClassic');
   };
 
   exportViewKeys = () => {
@@ -322,32 +321,32 @@ export class SettingsView extends PureComponent<Props, State> {
       'YYYY-MM-DD-mm-ss',
     )}.dat`;
 
-    electron.remote.dialog.showSaveDialog(
-      undefined,
-      { defaultPath: backupFileName },
-      async (pathToSave: string) => {
-        if (!pathToSave) return;
+    // Use IPC for dialog instead of remote
+    const result = await window.electronAPI.showSaveDialog({ defaultPath: backupFileName });
 
-        const WALLET_DIR = this.getWalletFolderPath();
+    if (result.canceled || !result.filePath) return;
 
-        const zclassicDir = isTestnet() ? path.join(WALLET_DIR, 'testnet3') : WALLET_DIR;
-        const walletDatPath = `${zclassicDir}/wallet.dat`;
+    const pathToSave = result.filePath;
+    const WALLET_DIR = await this.getWalletFolderPath();
 
-        const [cannotAccess] = await eres(promisify(fs.access)(walletDatPath));
+    const zclassicDir = isTestnet()
+      ? window.electronAPI.node.path.join(WALLET_DIR, 'testnet3')
+      : WALLET_DIR;
+    const walletDatPath = `${zclassicDir}/wallet.dat`;
 
-        /* eslint-disable no-alert */
-        if (cannotAccess) {
-          alert("Couldn't backup the wallet.dat file. You need to back it up manually.");
-          return;
-        }
+    const [cannotAccess] = await eres(window.electronAPI.node.fs.access(walletDatPath));
 
-        const [error] = await eres(promisify(fs.copyFile)(walletDatPath, pathToSave));
+    /* eslint-disable no-alert */
+    if (cannotAccess) {
+      alert("Couldn't backup the wallet.dat file. You need to back it up manually.");
+      return;
+    }
 
-        if (error) {
-          alert("Couldn't backup the wallet.dat file. You need to back it up manually.");
-        }
-      },
-    );
+    const [error] = await eres(window.electronAPI.node.fs.copyFile(walletDatPath, pathToSave));
+
+    if (error) {
+      alert("Couldn't backup the wallet.dat file. You need to back it up manually.");
+    }
   };
 
   render = () => {

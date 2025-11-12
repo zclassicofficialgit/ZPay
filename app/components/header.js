@@ -20,6 +20,10 @@ const Wrapper = styled.div`
 const LogoWrapper = styled.div`
   height: ${props => props.theme.headerHeight};
   width: ${props => props.theme.sidebarWidth};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   //background-image: linear-gradient(
   //  to right,
   //  ${props => props.theme.colors.sidebarLogoGradientBegin},

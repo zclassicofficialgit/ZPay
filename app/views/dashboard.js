@@ -2,7 +2,6 @@
 
 import React, { PureComponent } from 'react';
 import styled from 'styled-components';
-import electron from 'electron'; // eslint-disable-line import/no-extraneous-dependencies
 
 import { WalletSummaryComponent } from '../components/wallet-summary';
 import { TransactionDailyComponent } from '../components/transaction-daily';
@@ -121,7 +120,7 @@ export class DashboardView extends PureComponent<Props> {
             />
           ))
         )}
-        {electron.remote.process.env.NODE_ENV !== 'test' && (
+        {process.env.NODE_ENV !== 'test' && (
           <ConfirmDialogComponent
             title='Welcome to ZPay'
             onConfirm={(toggle) => {

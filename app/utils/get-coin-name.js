@@ -1,9 +1,10 @@
 // @flow
-import electron from 'electron'; // eslint-disable-line
 import { isTestnet } from '../../config/is-testnet';
 
 export const getCoinName = () => {
-  if (electron.remote.process.env.NODE_ENV === 'test' || isTestnet()) return 'TCL';
+  // Direct access to process.env since we have nodeIntegration enabled
+  const nodeEnv = typeof process !== 'undefined' ? process.env.NODE_ENV : '';
+  if (nodeEnv === 'test' || isTestnet()) return 'TCL';
 
   return 'ZCL';
 };
