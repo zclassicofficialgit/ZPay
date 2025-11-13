@@ -1,13 +1,26 @@
-# ZPay| ZCL Wallet
+# ZPay | ZCL Wallet
 
 ZPay is a Sapling-enabled shielded-address-first Zclassic wallet, featuring cross-platform applications (macOS, Windows and Linux), built-in full node with support for `mainnet` and `testnet`, as well as `dark` and `light` themes.
 
 ![Build Status](https://app.bitrise.io/app/a5bc7a8391d5501b/status.svg?token=SOuGNc3Qf9rCj3Osl-eHyQ&branch=master)
 ![Flow Coverage](./public/flow-coverage-badge.svg)
 
-### [Latest Documentation](https://zepiowallet.com)
+## 🚀 Latest Updates (November 2025)
 
-### [Latest Release](https://github.com/zclassicofficialgit/ZPay)
+**New features and bug fixes:**
+- ✅ Fixed sync status display (now shows 100% when fully synced)
+- ✅ Updated ZCL price API (CoinGecko integration)
+- ✅ Fixed transaction sending with proper balance validation
+- ✅ Improved address detection (detects ALL addresses including change addresses)
+- ✅ Updated block explorer (Zelcore)
+- ✅ Enhanced security and input validation
+
+**See [CHANGELOG.md](./CHANGELOG.md) for detailed changes**
+
+### [Official Repository](https://github.com/zclassicofficialgit/ZPay)
+### [Community Fork with Latest Fixes](https://github.com/VictorLux/ZPay)
+### [Blockchain Bootstrap](https://github.com/VictorLux/zclassic-bootstrap) - Fast sync your node!
+### [Latest Documentation](https://zepiowallet.com)
 
 ![ZPay Wallet](https://github.com/zclassicofficialgit/ZPay/blob/1.0/app/assets/images/dashboard.png)
 
@@ -34,15 +47,38 @@ List of the main open source libraries and technologies used in building **ZPay*
 - [Docz](https://docz.site): Documentation builder
 - [BigNumber.js](https://github.com/MikeMcl/bignumber.js#readme): Arbitrary-precision decimal and non-decimal arithmetic with safety
 
+## 🚀 Quick Start with Bootstrap
+
+**New!** Save hours of sync time by using the blockchain bootstrap:
+
+```bash
+# Download and install bootstrap automatically
+# Visit: https://github.com/VictorLux/zclassic-bootstrap
+# Choose your platform (Windows, macOS, or Linux)
+
+# For macOS:
+bash install-bootstrap-mac.sh
+
+# For Linux:
+bash install-bootstrap-linux.sh
+
+# For Windows:
+# Run install-bootstrap-windows.bat
+```
+
+Then start ZPay normally - it will sync the remaining blocks in minutes!
+
 ## Installing and Running From Source
 
 To run **ZPay** from source you'll need to perform the following steps:
 ```bash
-# Ensure you have Node LTS v8+
+# Ensure you have Node LTS v12+ (v14 recommended)
 # https://nodejs.org/en/
 
-# Clone Codebase
-git clone https://github.com/zclassicofficialgit/ZPay
+# Clone Codebase (Community Fork with Latest Fixes)
+git clone https://github.com/VictorLux/ZPay
+# Or clone official repository:
+# git clone https://github.com/zclassicofficialgit/ZPay
 
 # Install Dependencies
 # inside of the `ZPay` folder
@@ -58,6 +94,8 @@ yarn start
 # or
 npm start
 ```
+
+**Note for macOS users:** See [BUILD_MAC_INSTRUCTIONS.md](./BUILD_MAC_INSTRUCTIONS.md) for detailed build instructions.
 
 ## Building Application Locally
 
