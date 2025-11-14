@@ -2,6 +2,8 @@
 .*/node_modules/polished/.*
 ./__tests__/**.js
 ./flow-typed/npm/styled-components_v4.x.x.js
+./config/preload.js
+./config/ipc-handlers.js
 
 [include]
 

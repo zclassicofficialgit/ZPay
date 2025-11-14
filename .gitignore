@@ -14,6 +14,9 @@ __mocks__
 # Claude AI assistant files
 .claude/
 
+# Binary files - compiled executables
+bin/
+
 # Build artifacts and logs
 *.log
 yarn-error.log
