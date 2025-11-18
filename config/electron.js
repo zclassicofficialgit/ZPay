@@ -7,8 +7,9 @@ import path from 'path';
 
 /* eslint-disable import/no-extraneous-dependencies */
 import {
-  app, BrowserWindow, typeof BrowserWindow as BrowserWindowType, Menu,
+  app, BrowserWindow, Menu,
 } from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import isDev from 'electron-is-dev';
 import { registerDebugShortcut } from '../utils/debug-shortcut';
