@@ -12,11 +12,11 @@
     "url": "https://zclassic-ce.org"
   },
   "bugs": {
-    "url": "https://github.com/Zclassicofficialgit/Zpay/issues"
+    "url": "https://github.com/VictorLux/Zipher/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Zclassicofficialgit/Zpay"
+    "url": "git+https://github.com/VictorLux/Zipher"
   },
   "scripts": {
     "start": "concurrently \"cross-env BROWSER=none yarn dev\" \"wait-on http://0.0.0.0:8080 && yarn electron:dev\"",
@@ -57,6 +57,7 @@
     "appId": "com.zipher.wallet",
     "productName": "Zipher",
     "asar": true,
+    "electronCompile": false,
     "directories": {
       "buildResources": "build",
       "output": "dist"
