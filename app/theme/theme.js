@@ -1,41 +1,36 @@
 // @flow
 
-import theme from 'styled-theming';
-
-import { DARK, LIGHT } from '../constants/themes';
+import { MAC80S } from '../constants/themes';
 import { typography } from './typography';
-import { DARK_COLORS, LIGHT_COLORS } from './colors';
+import { MAC80S_COLORS } from './colors';
 
-// Building color object from theme keys
-// All themes must have the same variables as DARK_COLORS
-const colorKeys = Object.keys(DARK_COLORS);
-
-const colors: Object = {};
-colorKeys.forEach((key: string) => {
-  colors[key] = theme('mode', {
-    [LIGHT]: LIGHT_COLORS[key],
-    [DARK]: DARK_COLORS[key],
-  });
-});
-
-export const appTheme: AppTheme = {
-  // General
-  mode: DARK,
-
-  // Typography
+// Base theme configuration
+const baseTheme = {
   ...typography,
 
   // Sizes & Spacing
   sidebarWidth: '180px',
-  headerHeight: '60px',
-  layoutPaddingLeft: '35px',
-  layoutPaddingRight: '35px',
-  layoutContentPaddingTop: '20px',
-  boxBorderRadius: '3px',
+  headerHeight: '20px',
+  layoutPaddingLeft: '1px',
+  layoutPaddingRight: '1px',
+  layoutContentPaddingTop: '1px',
 
   // Misc
-  transitionEase: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-
-  // Colors
-  colors: { ...colors },
+  transitionEase: 'none',
 };
+
+// Macintosh 1984 theme configuration (only theme available)
+const macTheme = {
+  ...baseTheme,
+  mode: MAC80S,
+  fontFamily: 'Chicago, Geneva, "Lucida Grande", -apple-system, system-ui, sans-serif',
+  fontCode: 'Monaco, "Courier New", monospace',
+  boxBorderRadius: '0px',
+  colors: MAC80S_COLORS,
+};
+
+// Export function to get theme by mode (always returns macTheme)
+export const getTheme = (mode: string): AppTheme => macTheme;
+
+// Default theme
+export const appTheme: AppTheme = macTheme;

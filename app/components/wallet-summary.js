@@ -7,7 +7,7 @@ import { TextComponent } from './text';
 
 import { formatNumber } from '../utils/format-number';
 import { getCoinName } from '../utils/get-coin-name';
-import { DARK } from '../constants/themes';
+import { C64 } from '../constants/themes';
 
 import { media } from '../theme';
 
@@ -45,12 +45,17 @@ const TotalContainer = styled.div`
   min-width: 270px;
 `;
 
+const TotalValue = styled(TextComponent)`
+  color: ${props => props.theme.colors.text};
+`;
+
 const DetailContainer = styled.div`
   min-width: 130px;
   padding-right: 20px;
 `;
 
 const USDValue = styled(TextComponent)`
+  color: ${props => props.theme.colors.text};
   opacity: 0.5;
   font-weight: ${props => String(props.theme.fontWeight.light)};
   font-size: 16px;
@@ -66,6 +71,7 @@ const MiddleLabel = styled(TextComponent)`
   margin-top: 7px;
   margin-bottom: 5px;
   font-size: 18px;
+  color: ${props => props.theme.colors.text};
 `;
 
 const ShieldedValue = styled(DefaultLabel)`
@@ -78,7 +84,7 @@ const ShieldedValue = styled(DefaultLabel)`
     left: 0;
     top: -1px;
     content: '';
-    background: url(${props => (props.theme.mode === DARK ? ShieldDarkImage : ShieldLightImage)});
+    background: url(${props => (props.theme.mode === C64 ? ShieldDarkImage : ShieldLightImage)});
     background-size: cover;
     height: 12px;
     width: 11px;
@@ -105,7 +111,6 @@ const DetailMainContainer = styled.div`
 type Props = {
   total: number,
   shielded: number,
-  transparent: number,
   unconfirmed: number,
   zclPrice: number,
   theme: AppTheme,
@@ -114,7 +119,6 @@ type Props = {
 export const Component = ({
   total,
   shielded,
-  transparent,
   unconfirmed,
   zclPrice,
   theme,
@@ -126,13 +130,13 @@ export const Component = ({
       <OutsideLabel value='Wallet Summary' />
       <Wrapper>
         <TotalContainer>
-          <TextComponent
+          <TotalValue
             size={theme.fontSize.medium * 2.4}
-            value={`${coinName} ${formatNumber({ value: total })}`}
+            value={`${coinName} ${formatNumber({ value: total, maxDecimals: 2 })}`}
             isBold
           />
           <USDValue
-            value={`USD $${formatNumber({ value: total * zclPrice })}`}
+            value={`USD $${formatNumber({ value: total * zclPrice, maxDecimals: 2 })}`}
             size={theme.fontSize.medium * 2}
           />
         </TotalContainer>
@@ -140,29 +144,20 @@ export const Component = ({
           <DetailContainer>
             <ShieldedValue value='SHIELDED' isBold size={theme.fontSize.small} />
             <MiddleLabel
-              value={`${coinName} ${formatNumber({ value: shielded })}`}
+              value={`${coinName} ${formatNumber({ value: shielded, maxDecimals: 2 })}`}
               isBold
               size='16px'
             />
-            <USDValue value={`USD $${formatNumber({ value: shielded * zclPrice })}`} />
-          </DetailContainer>
-          <DetailContainer>
-            <DefaultLabel value='TRANSPARENT' isBold size={theme.fontSize.small} />
-            <MiddleLabel
-              value={`${coinName} ${formatNumber({ value: transparent })}`}
-              isBold
-              size='16px'
-            />
-            <USDValue value={`USD $${formatNumber({ value: transparent * zclPrice })}`} />
+            <USDValue value={`USD $${formatNumber({ value: shielded * zclPrice, maxDecimals: 2 })}`} />
           </DetailContainer>
           <DetailContainer>
             <UnconfirmedLabel value='UNCONFIRMED' isBold size={theme.fontSize.small} />
             <UnconfirmedValue
-              value={`${coinName} ${formatNumber({ value: unconfirmed })}`}
+              value={`${coinName} ${formatNumber({ value: unconfirmed, maxDecimals: 2 })}`}
               isBold
               size='16px'
             />
-            <USDValue value={`USD $${formatNumber({ value: unconfirmed * zclPrice })}`} />
+            <USDValue value={`USD $${formatNumber({ value: unconfirmed * zclPrice, maxDecimals: 2 })}`} />
           </DetailContainer>
         </DetailMainContainer>
       </Wrapper>

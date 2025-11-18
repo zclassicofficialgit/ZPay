@@ -1,6 +1,6 @@
 // @flow
 
-import React, { Fragment } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 
 import { TransactionItemComponent, type Transaction } from './transaction-item';
@@ -37,22 +37,21 @@ export const TransactionDailyComponent = ({ transactionsDate, transactions, zclP
   <Wrapper data-testid='TransactionsDaily'>
     <Day value={transactionsDate} />
     <TransactionsWrapper>
-      {transactions.map(
+      {(transactions || []).map(
         ({
           date, type, address, amount, transactionId, confirmed, confirmations,
-        }) => (
-          <Fragment key={`${address}-${type}-${amount}-${date}`}>
-            <TransactionItemComponent
-              confirmations={confirmations}
-              confirmed={confirmed}
-              transactionId={transactionId}
-              type={type}
-              date={date}
-              address={address || 'N/A'}
-              amount={amount}
-              zclPrice={zclPrice}
-            />
-          </Fragment>
+        }, index) => (
+          <TransactionItemComponent
+            key={`${transactionId}-${date}-${index}`}
+            confirmations={confirmations}
+            confirmed={confirmed}
+            transactionId={transactionId}
+            type={type}
+            date={date}
+            address={address || 'N/A'}
+            amount={amount}
+            zclPrice={zclPrice}
+          />
         ),
       )}
     </TransactionsWrapper>

@@ -255,7 +255,7 @@ class Component extends PureComponent<Props, State> {
           <InnerWrapper>
             <AddressBalance
               id='wallet-address-balance'
-              value={formatNumber({ append: `${coinName} `, value: balance })}
+              value={formatNumber({ append: `${coinName} `, value: balance, maxDecimals: 2 })}
             />
             <Address
               id='wallet-address-text'
@@ -294,7 +294,7 @@ class Component extends PureComponent<Props, State> {
                 <SecondaryColumn>
                   <AddressDetailsLabel>Funds</AddressDetailsLabel>
                   <AddressDetailsValue
-                    value={formatNumber({ append: `${coinName} `, value: balance })}
+                    value={formatNumber({ append: `${coinName} `, value: balance, maxDecimals: 2 })}
                   />
                 </SecondaryColumn>
                 <ButtonWrapper>

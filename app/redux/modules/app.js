@@ -15,6 +15,8 @@ export type State = {|
   zclassicNetwork: string,
   embeddedDaemon: boolean,
   isRefetching: boolean,
+  blockCount: number,
+  peerCount: number,
 |};
 
 // Actions
@@ -37,14 +39,20 @@ export const closeErrorModal = () => ({
 export const updateNodeSyncStatus = ({
   nodeSyncProgress,
   nodeSyncType,
+  blockCount,
+  peerCount,
 }: {
   nodeSyncProgress: number,
   nodeSyncType: $PropertyType<State, 'nodeSyncType'>,
+  blockCount?: number,
+  peerCount?: number,
 }) => ({
   type: UPDATE_NODE_SYNC_STATUS,
   payload: {
     nodeSyncProgress,
     nodeSyncType,
+    blockCount,
+    peerCount,
   },
 });
 
@@ -56,6 +64,8 @@ const initialState: State = {
   zclassicNetwork: electronStore.get(ZCLASSIC_NETWORK),
   embeddedDaemon: electronStore.get(EMBEDDED_DAEMON),
   isRefetching: false,
+  blockCount: 0,
+  peerCount: 0,
 };
 
 // eslint-disable-next-line
@@ -70,6 +80,8 @@ export default (state: State = initialState, action: Action): State => {
         ...state,
         nodeSyncProgress: action.payload.nodeSyncProgress,
         nodeSyncType: action.payload.nodeSyncType,
+        blockCount: action.payload.blockCount !== undefined ? action.payload.blockCount : state.blockCount,
+        peerCount: action.payload.peerCount !== undefined ? action.payload.peerCount : state.peerCount,
       };
     default:
       return state;

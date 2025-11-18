@@ -16,6 +16,8 @@ export type MapStateToProps = {|
   nodeSyncProgress: number,
   nodeSyncType: 'ready' | 'syncing' | 'error',
   isRefetching: boolean,
+  blockCount: number,
+  peerCount: number,
 |};
 
 const mapStateToProps = ({ app, walletSummary, receive }: AppState): MapStateToProps => ({
@@ -24,6 +26,8 @@ const mapStateToProps = ({ app, walletSummary, receive }: AppState): MapStateToP
   isRefetching:
     walletSummary.fetchState === FETCH_STATE.REFETCHING
     || receive.fetchState === FETCH_STATE.REFETCHING,
+  blockCount: app.blockCount,
+  peerCount: app.peerCount,
 });
 
 export type MapDispatchToProps = {|
@@ -49,8 +53,17 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
     // verificationprogress is unreliable for Zclassic and gets stuck at ~66%
     const isSynced = blockchaininfo.blocks === blockchaininfo.headers;
 
+    // Get peer count when ready
+    let peerCount = 0;
+    if (isSynced) {
+      const [peerErr, peerInfo] = await eres(rpc.getpeerinfo());
+      if (!peerErr && peerInfo && Array.isArray(peerInfo)) {
+        peerCount = peerInfo.length;
+      }
+    }
+
     // eslint-disable-next-line no-console
-    console.log('[ZPay Sync Fix] blocks:', blockchaininfo.blocks, 'headers:', blockchaininfo.headers, 'isSynced:', isSynced);
+    console.log('[ZPay Sync Fix] blocks:', blockchaininfo.blocks, 'headers:', blockchaininfo.headers, 'isSynced:', isSynced, 'peers:', peerCount);
 
     dispatch(
       updateNodeSyncStatus({
@@ -58,6 +71,8 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
         nodeSyncType: isSynced
           ? NODE_SYNC_TYPES.READY
           : NODE_SYNC_TYPES.SYNCING,
+        blockCount: blockchaininfo.blocks,
+        peerCount,
       }),
     );
   },

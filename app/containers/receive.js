@@ -44,23 +44,25 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
   loadAddresses: async () => {
     dispatch(loadAddresses());
 
+    // ZIPHER: Only load z-addresses (shielded addresses)
     const [zAddressesErr, zAddresses] = await eres(rpc.z_listaddresses());
 
-    const [tAddressesErr, transparentAddresses] = await eres(rpc.getaddressesbyaccount(''));
+    // Skip transparent addresses completely
+    // const [tAddressesErr, transparentAddresses] = await eres(rpc.getaddressesbyaccount(''));
 
-    if (zAddressesErr || tAddressesErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
+    if (zAddressesErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
 
     const latestZAddress = zAddresses.find(addr => addr === electronStore.get(getLatestAddressKey('shielded')))
       || zAddresses[0];
 
-    const latestTAddress = transparentAddresses.find(
-      addr => addr === electronStore.get(getLatestAddressKey('transparent')),
-    ) || transparentAddresses[0];
+    // No transparent addresses in Zipher
+    const latestTAddress = null;
+    const transparentAddresses = [];
 
     const allAddresses = await asyncMap(
       [
         ...zAddresses.filter(cur => cur !== latestZAddress),
-        ...transparentAddresses.filter(cur => cur !== latestTAddress),
+        // No transparent addresses
       ],
       async (address) => {
         const [err, response] = await eres(rpc.z_getbalance(address));
@@ -80,17 +82,16 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
               balance: await rpc.z_getbalance(latestZAddress),
             }
             : null,
-          latestTAddress
-            ? { address: latestTAddress, balance: await rpc.z_getbalance(latestTAddress) }
-            : null,
+          // No transparent addresses in Zipher
           ...allAddresses,
         ].filter(Boolean),
       }),
     );
   },
   getNewAddress: async ({ type }) => {
+    // ZIPHER: Only generate shielded z-addresses, ignore type parameter
     const [error, address] = await eres(
-      type === 'shielded' ? rpc.z_getnewaddress(SAPLING) : rpc.getnewaddress(''),
+      rpc.z_getnewaddress(SAPLING),  // Always use z-addresses
     );
 
     if (error || !address) return dispatch(getNewAddressError({ error: 'Unable to generate a new address' }));

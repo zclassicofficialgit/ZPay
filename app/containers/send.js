@@ -76,21 +76,15 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
   sendTransaction: async ({
     from, to, amount, fee, memo,
   }) => {
-    // Get balance of the 'from' address (works for both t and z addresses)
-    let balance = 0;
-    if (from.startsWith('z')) {
-      const [balanceErr, zBalance] = await eres(rpc.z_getbalance(from));
-      if (balanceErr) {
-        return dispatch(sendTransactionError({ error: 'Unable to fetch balance for sending address' }));
-      }
-      balance = zBalance;
-    } else {
-      // For transparent addresses, sum up unspent outputs
-      const [unspentErr, unspentOutputs] = await eres(rpc.listunspent(0, 9999999, [from]));
-      if (unspentErr) {
-        return dispatch(sendTransactionError({ error: 'Unable to fetch balance for sending address' }));
-      }
-      balance = unspentOutputs.reduce((sum, utxo) => sum + utxo.amount, 0);
+    // Zipher only supports shielded addresses
+    if (!from.startsWith('z')) {
+      return dispatch(sendTransactionError({ error: 'Zipher only supports shielded addresses' }));
+    }
+
+    // Get balance of the shielded 'from' address
+    const [balanceErr, balance] = await eres(rpc.z_getbalance(from));
+    if (balanceErr) {
+      return dispatch(sendTransactionError({ error: 'Unable to fetch balance for sending address' }));
     }
 
     // Validate amount against actual balance
@@ -175,17 +169,16 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
   },
   resetSendView: () => dispatch(resetSendTransaction()),
   validateAddress: async ({ address }: { address: string }) => {
-    if (address.startsWith('z')) {
-      const [, validationResult] = await eres(rpc.z_validateaddress(address));
-
+    // ZIPHER: Only accept z-addresses (shielded addresses)
+    if (!address.startsWith('z')) {
       return dispatch(
         validateAddressSuccess({
-          isValid: Boolean(validationResult && validationResult.isvalid),
+          isValid: false,
         }),
       );
     }
 
-    const [, validationResult] = await eres(rpc.validateaddress(address));
+    const [, validationResult] = await eres(rpc.z_validateaddress(address));
 
     if (validationResult) {
       return dispatch(
@@ -204,48 +197,16 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
 
     if (zAddressesErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
 
-    // Helper function to get balance for any address type
+    // Zipher only uses shielded addresses
     const getAddressBalance = async (address) => {
-      if (address.startsWith('z')) {
-        return rpc.z_getbalance(address);
-      }
-      // For transparent addresses, sum unspent outputs
-      const unspentOutputs = await rpc.listunspent(0, 9999999, [address]);
-      return unspentOutputs.reduce((sum, utxo) => sum + utxo.amount, 0);
+      return rpc.z_getbalance(address);
     };
-
-    // Get ALL transparent addresses with balance by checking listunspent
-    const [unspentErr, allUnspent] = await eres(rpc.listunspent(0));
-    if (unspentErr) return dispatch(loadAddressesError({ error: 'Something went wrong!' }));
-
-    // Group unspent outputs by address and sum balances
-    const transparentBalances = {};
-    allUnspent.forEach((utxo) => {
-      if (!transparentBalances[utxo.address]) {
-        transparentBalances[utxo.address] = 0;
-      }
-      transparentBalances[utxo.address] += utxo.amount;
-    });
-
-    // Convert to array of addresses with balance > 0
-    const transparentAddresses = Object.entries(transparentBalances)
-      .filter(([, balance]) => balance > 0)
-      .map(([addr, balance]) => ({ address: addr, balance }));
 
     const latestZAddress = zAddresses.find(addr => addr === store.get(getLatestAddressKey('shielded'))) || zAddresses[0];
 
-    const latestTAddress = transparentAddresses.find(({ address }) => address === store.get(getLatestAddressKey('transparent')))
-      || transparentAddresses[0];
-
     const allAddresses = await asyncMap(
-      [
-        ...zAddresses.filter(cur => cur !== latestZAddress),
-        ...transparentAddresses.filter(
-          ({ address }) => address !== (latestTAddress ? latestTAddress.address : null),
-        ),
-      ],
-      async (item) => {
-        const address = typeof item === 'string' ? item : item.address;
+      zAddresses.filter(cur => cur !== latestZAddress),
+      async (address) => {
         const [err, response] = await eres(getAddressBalance(address));
 
         if (!err && new BigNumber(response).isGreaterThan(0)) return { address, balance: response };
@@ -263,9 +224,6 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
               balance: await getAddressBalance(latestZAddress),
             }
             : null,
-          latestTAddress
-            ? { address: latestTAddress.address, balance: latestTAddress.balance }
-            : null,
           ...allAddresses,
         ].filter(Boolean),
       }),
@@ -277,17 +235,13 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
     }),
   ),
   getAddressBalance: async ({ address }: { address: string }) => {
-    let balance = 0;
-    if (address.startsWith('z')) {
-      const [err, zBalance] = await eres(rpc.z_getbalance(address));
-      if (err) return dispatch(loadAddressBalanceError({ error: "Can't load your balance address" }));
-      balance = zBalance;
-    } else {
-      // For transparent addresses, sum unspent outputs
-      const [err, unspentOutputs] = await eres(rpc.listunspent(0, 9999999, [address]));
-      if (err) return dispatch(loadAddressBalanceError({ error: "Can't load your balance address" }));
-      balance = unspentOutputs.reduce((sum, utxo) => sum + utxo.amount, 0);
+    // Zipher only supports shielded addresses
+    if (!address.startsWith('z')) {
+      return dispatch(loadAddressBalanceError({ error: "Zipher only supports shielded addresses" }));
     }
+
+    const [err, balance] = await eres(rpc.z_getbalance(address));
+    if (err) return dispatch(loadAddressBalanceError({ error: "Can't load your balance address" }));
 
     return dispatch(loadAddressBalanceSuccess({ balance }));
   },

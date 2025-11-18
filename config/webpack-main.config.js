@@ -13,6 +13,21 @@ module.exports = {
   },
   devtool: 'cheap-module-source-map',
   target: 'electron-renderer',
+  externals: {
+    // Node.js built-in modules that should be available in Electron
+    url: 'commonjs url',
+    path: 'commonjs path',
+    fs: 'commonjs fs',
+    os: 'commonjs os',
+    crypto: 'commonjs crypto',
+    buffer: 'commonjs buffer',
+    stream: 'commonjs stream',
+    util: 'commonjs util',
+    assert: 'commonjs assert',
+    events: 'commonjs events',
+    child_process: 'commonjs child_process',
+    electron: 'commonjs electron',
+  },
   module: {
     rules: [
       {

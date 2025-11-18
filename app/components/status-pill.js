@@ -222,13 +222,13 @@ class Component extends PureComponent<Props, State> {
   };
 
   getLabel = () => {
-    const { nodeSyncType } = this.props;
+    const { nodeSyncType, blockCount, peerCount } = this.props;
 
     switch (nodeSyncType) {
       case NODE_SYNC_TYPES.SYNCING:
         return 'syncing';
       case NODE_SYNC_TYPES.READY:
-        return 'ready';
+        return `ready • block #${blockCount.toLocaleString()} • ${peerCount} peer${peerCount === 1 ? '' : 's'}`;
       default:
         return 'error';
     }

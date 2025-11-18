@@ -106,14 +106,23 @@ const Option = styled.button`
   background: none;
   min-height: 40px;
   background-color: ${props => props.theme.colors.dropdownBg};
+  color: ${props => props.theme.colors.text};
   cursor: pointer;
   z-index: 99;
   text-transform: ${(props: PropsWithTheme<{ capitalize: boolean }>) => (props.capitalize ? 'capitalize' : 'none')};
   padding: 5px 10px;
   border-bottom: 1px solid ${props => props.theme.colors.dropdownBorder};
+  font-family: ${props => props.theme.fontFamily};
+  font-size: ${props => `${props.theme.fontSize.regular}em`};
+  font-weight: ${props => props.theme.fontWeight.default};
 
   &:hover {
     background-color: ${props => props.theme.colors.dropdownHoveredBg};
+    color: #FFFFFF;
+
+    p {
+      color: #FFFFFF !important;
+    }
   }
 
   &:last-child {
@@ -229,7 +238,7 @@ class Component extends PureComponent<Props, State> {
                 bgColor={bgColor}
                 capitalize={capitalize}
               >
-                <Value value={label} />
+                <Value value={label} color="#000000" />
               </Option>
             ))}
           </OptionsWrapper>

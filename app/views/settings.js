@@ -15,7 +15,6 @@ import { Clipboard } from '../components/clipboard';
 import { SelectComponent } from '../components/select';
 
 import rpc from '../../services/api';
-import { DARK, LIGHT, THEME_MODE } from '../constants/themes';
 import { MAINNET, TESTNET } from '../constants/zclassic-network';
 import electronStore from '../../config/electron-store';
 import { openExternal } from '../utils/open-external';
@@ -41,6 +40,9 @@ const SHIELDED_ADDRESS_PRIVATE_KEY_PREFIX = isTestnet() ? 'secret-extended-key' 
 
 const Wrapper = styled.div`
   margin-top: ${props => props.theme.layoutContentPaddingTop};
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const ModalContent = styled.div`
@@ -72,8 +74,9 @@ const SettingsWrapper = styled.div`
   min-width: 350px;
   background: ${props => props.theme.colors.settingsCardBg};
   padding: 20px 20px 10px 20px;
-  border: 1px solid ${props => props.theme.colors.inputBorder};
+  border: 2px solid ${props => props.theme.colors.inputBorder};
   border-radius: ${props => props.theme.boxBorderRadius};
+  box-shadow: 2px 2px 0 ${props => props.theme.colors.borderLight};
 `;
 
 const SettingsInnerWrapper = styled.div`
@@ -100,18 +103,23 @@ const LearnMore = styled.div`
 
 const SettingsTitle = styled(TextComponent)`
   text-transform: uppercase;
-  color: ${props => props.theme.colors.transactionsDate};
-  font-size: ${props => `${props.theme.fontSize.regular * 0.9}em`};
+  color: ${props => props.theme.colors.text};
+  font-size: ${props => `${props.theme.fontSize.regular * 1.1}em`};
   font-weight: ${props => String(props.theme.fontWeight.bold)};
-  margin-bottom: 5px;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid ${props => props.theme.colors.activeItem};
+  padding-bottom: 5px;
 `;
 
 const SettingsContent = styled(TextComponent)`
-  margin-bottom: 30px;
-  margin-top: 15px;
-  font-weight: 300;
-  letter-spacing: 0.5px;
-  line-height: 1.4;
+  margin-bottom: 20px;
+  margin-top: 10px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  line-height: 1.6;
+  color: ${props => props.theme.colors.textLight};
+  font-size: ${props => `${props.theme.fontSize.regular * 0.95}em`};
 `;
 
 const ThemeSelectWrapper = styled.div`
@@ -363,8 +371,6 @@ export class SettingsView extends PureComponent<Props, State> {
 
     const { zclassicNetwork, updateZclassicNetwork, embeddedDaemon } = this.props;
 
-    const themeOptions = [{ label: 'Dark', value: DARK }, { label: 'Light', value: LIGHT }];
-
     const networkOptions = [
       { label: 'Mainnet', value: MAINNET },
       { label: 'Testnet', value: TESTNET },
@@ -373,40 +379,35 @@ export class SettingsView extends PureComponent<Props, State> {
     return (
       <Wrapper>
         {embeddedDaemon && (
-          <ConfirmDialogComponent
-            title='Confirm'
-            onConfirm={() => updateZclassicNetwork(zclassicNetwork === MAINNET ? TESTNET : MAINNET)}
-            showButtons={embeddedDaemon}
-            renderTrigger={toggleVisibility => (
-              <ThemeSelectWrapper>
-                <SettingsTitle value='Zclassic Network' />
-                <SelectComponent
-                  onChange={value => (zclassicNetwork !== value ? toggleVisibility() : undefined)}
-                  value={zclassicNetwork}
-                  options={networkOptions}
-                />
-              </ThemeSelectWrapper>
-            )}
-          >
-            {() => (
-              <ModalContent>
-                <TextComponent
-                  value={
-                    embeddedDaemon ? CONFIRM_RELAUNCH_CONTENT : RUNNING_NON_EMBEDDED_DAEMON_WARNING
-                  }
-                />
-              </ModalContent>
-            )}
-          </ConfirmDialogComponent>
+          <SettingsWrapper>
+            <ConfirmDialogComponent
+              title='Confirm Network Change'
+              onConfirm={() => updateZclassicNetwork(zclassicNetwork === MAINNET ? TESTNET : MAINNET)}
+              showButtons={embeddedDaemon}
+              renderTrigger={toggleVisibility => (
+                <SettingsInnerWrapper>
+                  <SettingsTitle value='Zclassic Network' />
+                  <SettingsContent value='Choose between Mainnet (production) or Testnet (testing). Changing network requires restarting the application.' />
+                  <SelectComponent
+                    onChange={value => (zclassicNetwork !== value ? toggleVisibility() : undefined)}
+                    value={zclassicNetwork}
+                    options={networkOptions}
+                  />
+                </SettingsInnerWrapper>
+              )}
+            >
+              {() => (
+                <ModalContent>
+                  <TextComponent
+                    value={
+                      embeddedDaemon ? CONFIRM_RELAUNCH_CONTENT : RUNNING_NON_EMBEDDED_DAEMON_WARNING
+                    }
+                  />
+                </ModalContent>
+              )}
+            </ConfirmDialogComponent>
+          </SettingsWrapper>
         )}
-        <ThemeSelectWrapper>
-          <SettingsTitle value='Theme' />
-          <SelectComponent
-            onChange={newMode => electronStore.set(THEME_MODE, newMode)}
-            value={electronStore.get(THEME_MODE)}
-            options={themeOptions}
-          />
-        </ThemeSelectWrapper>
         {/* Hidden due to Sapling inability to export view keys on sapling addresses yet */}
         {/* <ConfirmDialogComponent
           title={EXPORT_VIEW_KEYS_TITLE}

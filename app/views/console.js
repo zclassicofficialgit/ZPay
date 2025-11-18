@@ -7,9 +7,8 @@ import eres from 'eres';
 import humanizeDuration from 'humanize-duration';
 
 import { TextComponent } from '../components/text';
+import { ZClassicPixelLogo } from '../components/zclassic-pixel-logo';
 
-import ConsoleSymbolDark from '../assets/images/console_zclassic_dark.png';
-import ConsoleSymbolLight from '../assets/images/console_zclassic_light.png';
 import { DARK } from '../constants/themes';
 import rpc from '../../services/api';
 import store from '../../config/electron-store';
@@ -28,9 +27,10 @@ const ConsoleText = styled(TextComponent)`
   font-family: 'Source Code Pro', monospace;
 `;
 
-const ConsoleImg = styled.img`
-  height: 200px;
-  width: auto;
+const LogoWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
 `;
 
 const breakpoints = [1, 4, 7, 10, 13];
@@ -104,12 +104,16 @@ class Component extends PureComponent<Props, State> {
   render() {
     const { theme } = this.props;
 
-    const ConsoleSymbol = theme.mode === DARK ? ConsoleSymbolDark : ConsoleSymbolLight;
-
     return (
       <Wrapper id='console-wrapper'>
         <Fragment>
-          <ConsoleImg src={ConsoleSymbol} alt='Zclassicd' />
+          <LogoWrapper>
+            <ZClassicPixelLogo
+              size="12px"
+              primaryColor={theme.mode === DARK ? '#FFB800' : '#FF9500'}
+              secondaryColor={theme.mode === DARK ? '#FF6B00' : '#FF5500'}
+            />
+          </LogoWrapper>
           {this.getLog(this.state)
             .split('\n')
             .map((item, idx) => (

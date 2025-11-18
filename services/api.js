@@ -21,7 +21,7 @@ const getRPCConfig = () => {
 
 const getMessage = (statusCode: number, isECONNREFUSED: boolean) => {
   if (isECONNREFUSED) {
-    return 'Zpay could not find a daemon running, please check the logs!';
+    return 'Unable to connect to Zclassic daemon. The daemon may still be starting up.';
   }
 
   switch (statusCode) {

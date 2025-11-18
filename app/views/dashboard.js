@@ -122,24 +122,24 @@ export class DashboardView extends PureComponent<Props> {
         )}
         {process.env.NODE_ENV !== 'test' && (
           <ConfirmDialogComponent
-            title='Welcome to ZPay'
+            title='Welcome to Zipher Classic'
             onConfirm={(toggle) => {
               store.set(DISPLAY_WELCOME_MODAL, false);
               toggle();
             }}
             onClose={() => store.set(DISPLAY_WELCOME_MODAL, false)}
             showSingleConfirmButton
-            singleConfirmButtonText='Ok. Let me in!'
+            singleConfirmButtonText='Hello.'
             isVisible={this.shouldShowWelcomeModal()}
           >
             {() => (
               <ModalContent>
                 <ContentWrapper>
-                  <LogoComponent src={zepioLogo} alt='ZPay' />
-                  <TitleComponent value='Hello from ZPay' isBold />
-                  <WelcomeText value='ZPay is a cross-platform full-node Zclassic wallet that allows users to easily send and receive ZCL. With first-class support for Sapling shielded addresses, users are able to create truly private transactions using a modern and intuitive interface.' />
-                  <WelcomeText value='ZPay aims to improve the user experience for those seeking true financial privacy online.' />
-                  <AdditionalText value='ZPay will need to sync the Zclassic blockchain data before using all features.' />
+                  <LogoComponent src={zepioLogo} alt='Zipher' />
+                  <TitleComponent value='Zipher Classic System 7.0' isBold />
+                  <WelcomeText value='Welcome to Zipher - Your Macintosh-inspired Zclassic wallet. Experience the simplicity of 1984 with the privacy technology of today. Clean lines, intuitive design, and uncompromising security.' />
+                  <WelcomeText value='Think Different. Transaction Private.' />
+                  <AdditionalText value='Please wait while Zipher synchronizes with the Zclassic network. This computer will change everything.' />
                 </ContentWrapper>
               </ModalContent>
             )}

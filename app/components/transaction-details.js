@@ -2,10 +2,12 @@
 
 import React from 'react';
 import styled, { withTheme } from 'styled-components';
+import { withRouter } from 'react-router-dom';
 import dateFns from 'date-fns';
 import { BigNumber } from 'bignumber.js';
 
 import { ZCLASSIC_EXPLORER_BASE_URL } from '../constants/explorer';
+import { EXPLORER_ROUTE } from '../constants/routes';
 import { DARK } from '../constants/themes';
 
 import SentIconDark from '../assets/images/transaction_sent_icon_dark.svg';
@@ -134,6 +136,7 @@ type Props = {
   theme: AppTheme,
   confirmed: boolean,
   confirmations: number,
+  history: Object,
 };
 
 const Component = ({
@@ -147,6 +150,7 @@ const Component = ({
   theme,
   confirmed,
   confirmations,
+  history,
 }: Props) => {
   const isReceived = type === 'receive';
   const receivedIcon = theme.mode === DARK ? ReceivedIconDark : ReceivedIconLight;
@@ -174,20 +178,22 @@ const Component = ({
           value={formatNumber({
             append: `${isReceived ? '+' : '-'}${coinName} `,
             value: amount,
+            maxDecimals: 2,
           })}
           color={
             isReceived
-              ? theme.colors.transactionReceived({ theme })
-              : theme.colors.transactionSent({ theme })
+              ? theme.colors.transactionReceived
+              : theme.colors.transactionSent
           }
         />
         <TextComponent
           value={formatNumber({
             append: `${isReceived ? '+' : '-'}USD `,
             value: new BigNumber(amount).times(zclPrice).toNumber(),
+            maxDecimals: 2,
           })}
           size={1.5}
-          color={theme.colors.transactionDetailsLabel({ theme })}
+          color={theme.colors.transactionDetailsLabel}
         />
       </DetailsWrapper>
       <InfoRow>
@@ -199,7 +205,7 @@ const Component = ({
           <TextComponent
             value='Confirmations'
             isBold
-            color={theme.colors.transactionDetailsLabel({ theme })}
+            color={theme.colors.transactionDetailsLabel}
           />
           <TextComponent value={String(confirmationValue)} />
         </ColumnComponent>
@@ -208,7 +214,10 @@ const Component = ({
       <InfoRow>
         <ColumnComponent width='100%'>
           <Label value='TRANSACTION ID' />
-          <TransactionId onClick={() => openExternal(ZCLASSIC_EXPLORER_BASE_URL + transactionId)}>
+          <TransactionId onClick={() => {
+            handleClose();
+            history.push(`${EXPLORER_ROUTE}?txid=${transactionId}`);
+          }}>
             <Ellipsis value={transactionId} />
           </TransactionId>
         </ColumnComponent>
@@ -224,4 +233,4 @@ const Component = ({
   );
 };
 
-export const TransactionDetailsComponent = withTheme(Component);
+export const TransactionDetailsComponent = withRouter(withTheme(Component));

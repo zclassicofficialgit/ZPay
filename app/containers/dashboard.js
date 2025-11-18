@@ -29,7 +29,6 @@ import type { Dispatch, FetchState } from '../types/redux';
 export type MapStateToProps = {|
   total: number,
   shielded: number,
-  transparent: number,
   unconfirmed: number,
   error: null | string,
   fetchState: FetchState,
@@ -40,9 +39,8 @@ export type MapStateToProps = {|
 |};
 
 const mapStateToProps: AppState => MapStateToProps = ({ walletSummary, app }) => ({
-  total: walletSummary.total,
+  total: walletSummary.shielded,  // Only show shielded balance as total
   shielded: walletSummary.shielded,
-  transparent: walletSummary.transparent,
   unconfirmed: walletSummary.unconfirmed,
   error: walletSummary.error,
   fetchState: walletSummary.fetchState,
@@ -60,13 +58,21 @@ const mapDispatchToProps: (dispatch: Dispatch) => MapDispatchToProps = (dispatch
   getSummary: async () => {
     dispatch(loadWalletSummary());
 
-    const [walletErr, walletSummary] = await eres(rpc.z_gettotalbalance());
+    const [walletErr, walletSummary] = await eres(rpc.z_gettotalbalance(0)); // Include unconfirmed (0 confirmations)
+    const [confirmedWalletErr, confirmedWalletSummary] = await eres(rpc.z_gettotalbalance(1)); // Only confirmed (1+ confirmations)
     const [zAddressesErr, zAddresses = []] = await eres(rpc.z_listaddresses());
-    const [tAddressesErr, tAddresses = []] = await eres(rpc.getaddressesbyaccount(''));
+    // Zipher: Shielded-only, no transparent addresses
     const [transactionsErr, transactions] = await eres(rpc.listtransactions());
-    const [unconfirmedBalanceErr, unconfirmedBalance] = await eres(rpc.getunconfirmedbalance());
 
-    if (walletErr || zAddressesErr || tAddressesErr || transactionsErr || unconfirmedBalanceErr) {
+    // Calculate unconfirmed balance as the difference between total (0 conf) and confirmed (1+ conf)
+    let unconfirmedBalance = 0;
+    if (walletSummary && confirmedWalletSummary) {
+      const totalWithUnconfirmed = new BigNumber(walletSummary.private || 0);
+      const confirmedOnly = new BigNumber(confirmedWalletSummary.private || 0);
+      unconfirmedBalance = totalWithUnconfirmed.minus(confirmedOnly).toNumber();
+    }
+
+    if (walletErr || confirmedWalletErr || zAddressesErr || transactionsErr) {
       return dispatch(
         loadWalletSummaryError({
           error: 'Something went wrong!',
@@ -83,16 +89,16 @@ const mapDispatchToProps: (dispatch: Dispatch) => MapDispatchToProps = (dispatch
         date: new Date(transaction.time * 1000).toISOString(),
         address: transaction.address || '(Shielded)',
         amount: Math.abs(transaction.amount),
-        fees: transaction.fee ? new BigNumber(transaction.fee).abs().toFormat(4) : 'N/A',
+        fees: transaction.fee ? new BigNumber(transaction.fee).abs().toFormat(2) : 'N/A',
       })),
       arr => groupBy(arr, obj => dateFns.format(obj.date, 'MMM DD, YYYY')),
       obj => Object.keys(obj).map(day => ({
         day,
         jsDay: new Date(day),
-        list: sortByDescend('date')(obj[day]),
+        list: sortByDescend('date')(obj[day] || []),
       })),
       sortByDescend('jsDay'),
-    ])([...transactions, ...listShieldedTransactions()]);
+    ])([...transactions, ...listShieldedTransactions()] || []);
 
     if (!zAddresses.length) {
       const [, newZAddress] = await eres(rpc.z_getnewaddress(SAPLING));
@@ -100,19 +106,19 @@ const mapDispatchToProps: (dispatch: Dispatch) => MapDispatchToProps = (dispatch
       if (newZAddress) zAddresses.push(newZAddress);
     }
 
-    if (!tAddresses.length) {
-      const [, newTAddress] = await eres(rpc.getnewaddress(''));
+    // Zipher: No transparent addresses
 
-      if (newTAddress) tAddresses.push(newTAddress);
-    }
+    // Ensure all balance values are properly formatted numbers
+    const totalBalance = confirmedWalletSummary ? new BigNumber(confirmedWalletSummary.private || 0).toNumber() : 0;
+    const shieldedBalance = confirmedWalletSummary ? new BigNumber(confirmedWalletSummary.private || 0).toNumber() : 0;
 
     dispatch(
       loadWalletSummarySuccess({
-        transparent: walletSummary.transparent,
-        total: walletSummary.total,
-        shielded: walletSummary.private,
+        transparent: 0,  // Always 0 for Zipher
+        total: totalBalance,  // Only confirmed shielded balance
+        shielded: shieldedBalance,
         unconfirmed: unconfirmedBalance,
-        addresses: [...zAddresses, ...tAddresses],
+        addresses: zAddresses,  // Only z-addresses
         transactions: formattedTransactions,
         zclPrice: new BigNumber(store.get('ZCL_DOLLAR_PRICE')).toNumber(),
       }),

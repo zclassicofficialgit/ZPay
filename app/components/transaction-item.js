@@ -121,10 +121,12 @@ const Component = ({
   const transactionValueInZcl = formatNumber({
     value: amount,
     append: `${isReceived ? '+' : '-'}${coinName} `,
+    maxDecimals: 2,
   });
   const transactionValueInUsd = formatNumber({
     value: amount * zclPrice,
     append: `${isReceived ? '+' : '-'}USD $`,
+    maxDecimals: 2,
   });
 
   const receivedIcon = theme.mode === DARK ? ReceivedIconDark : ReceivedIconLight;

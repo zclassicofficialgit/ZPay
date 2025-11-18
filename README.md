@@ -1,6 +1,50 @@
-# ZPay | ZCL Wallet
+# Zipher | ZCL Wallet
 
-ZPay is a Sapling-enabled shielded-address-first Zclassic wallet, featuring cross-platform applications (macOS, Windows and Linux), built-in full node with support for `mainnet` and `testnet`, as well as `dark` and `light` themes.
+## ⚠️ IMPORTANT DISCLAIMER - EXPERIMENTAL SOFTWARE ⚠️
+
+**THIS SOFTWARE IS PROVIDED FOR EXPERIMENTAL, EDUCATIONAL, AND RESEARCH PURPOSES ONLY.**
+
+### Legal Disclaimer
+
+**USE AT YOUR OWN RISK.** By using this software, you acknowledge and agree to the following:
+
+1. **EXPERIMENTAL NATURE**: This wallet is highly experimental software in active development. It may contain bugs, errors, or vulnerabilities that could result in the loss of funds.
+
+2. **NO WARRANTIES**: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NONINFRINGEMENT.
+
+3. **NO LIABILITY**: IN NO EVENT SHALL THE AUTHORS, COPYRIGHT HOLDERS, CONTRIBUTORS, OR DISTRIBUTORS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE, INCLUDING BUT NOT LIMITED TO:
+   - Loss of funds or cryptocurrency
+   - Loss of private keys or wallet data
+   - Unauthorized access to your wallet
+   - Software malfunctions or data corruption
+   - Any direct, indirect, incidental, special, exemplary, or consequential damages
+
+4. **USER RESPONSIBILITY**: You are solely responsible for:
+   - Securing your private keys and wallet backups
+   - Testing the software with small amounts first
+   - Understanding the risks of cryptocurrency transactions
+   - Complying with all applicable laws and regulations in your jurisdiction
+   - Any financial losses that may occur
+
+5. **SECURITY**:
+   - Wallet encryption is currently disabled by the Zclassic daemon
+   - Use full-disk encryption to protect your wallet.dat file
+   - Assume that any user on your system can access your wallet.dat
+   - Never use this software for amounts you cannot afford to lose
+
+6. **NO FINANCIAL ADVICE**: This software does not constitute financial, investment, legal, or tax advice. Consult with qualified professionals before making any financial decisions.
+
+7. **TESTING RECOMMENDED**: We STRONGLY recommend:
+   - Testing the wallet on testnet before using mainnet
+   - Starting with very small amounts
+   - Building the software yourself from source for maximum security
+   - Keeping multiple backups of your private keys in secure locations
+
+8. **TESTING STATUS**: This software has only been tested on macOS. Windows and Linux versions are untested and may contain platform-specific bugs. Use at your own risk on non-macOS platforms.
+
+### About Zipher
+
+Zipher is an experimental Sapling-enabled shielded-address-first Zclassic wallet, featuring cross-platform applications (macOS, Windows and Linux), built-in full node with support for `mainnet` and `testnet`, as well as multiple themes including dark, light, and retro styles.
 
 ![Build Status](https://app.bitrise.io/app/a5bc7a8391d5501b/status.svg?token=SOuGNc3Qf9rCj3Osl-eHyQ&branch=master)
 ![Flow Coverage](./public/flow-coverage-badge.svg)
@@ -17,19 +61,11 @@ ZPay is a Sapling-enabled shielded-address-first Zclassic wallet, featuring cros
 
 **See [CHANGELOG.md](./CHANGELOG.md) for detailed changes**
 
-### [Official Repository](https://github.com/zclassicofficialgit/ZPay)
-### [Community Fork with Latest Fixes](https://github.com/VictorLux/ZPay)
-### [Blockchain Bootstrap](https://github.com/VictorLux/zclassic-bootstrap) - Fast sync your node!
-### [Latest Documentation](https://zepiowallet.com)
+### [Repository](https://github.com/VictorLux/Zipher)
+### [Blockchain Bootstrap Releases](https://github.com/VictorLux/Zipher/releases) - Fast sync your node!
+### [Original ZPay Wallet](https://github.com/zclassicofficialgit/ZPay)
 
-![ZPay Wallet](https://github.com/zclassicofficialgit/ZPay/blob/1.0/app/assets/images/dashboard.png)
-
-WARNING: Be careful when using this software! It is highly experimental. Always have your private keys saved securely. We STRONGLY recommend testing the wallet out on the testnet before using it for live transactions to familiarize yourself with its operation.
-
-Always test with small amounts first! It is your responsibility to properly handle your private keys.
-For best security, it is recommended to build the entire ZPay wallet by yourself, directly from GitHub.
-
-Encryption: Wallet encryption is currently disabled by Zclassicd. You should use full-disk encryption (or encryption of your home directory) to protect your wallet.dat file, and should assume that even unprivileged users who are running on your O/S can read your wallet.dat file.
+![Zipher Wallet](https://github.com/zclassicofficialgit/ZPay/blob/1.0/app/assets/images/dashboard.png)
 
 ## Stack Information
 
@@ -49,39 +85,25 @@ List of the main open source libraries and technologies used in building **ZPay*
 
 ## 🚀 Quick Start with Bootstrap
 
-**New!** Save hours of sync time by using the blockchain bootstrap:
+**New!** Save hours of sync time by using the automated blockchain bootstrap:
 
-```bash
-# Download and install bootstrap automatically
-# Visit: https://github.com/VictorLux/zclassic-bootstrap
-# Choose your platform (Windows, macOS, or Linux)
+Zipher automatically detects when bootstrap is needed and offers to download and install it for you. Just launch the wallet and follow the prompts!
 
-# For macOS:
-bash install-bootstrap-mac.sh
-
-# For Linux:
-bash install-bootstrap-linux.sh
-
-# For Windows:
-# Run install-bootstrap-windows.bat
-```
-
-Then start ZPay normally - it will sync the remaining blocks in minutes!
+**For manual installation**, visit the [Releases page](https://github.com/VictorLux/Zipher/releases) and download the latest bootstrap files.
 
 ## Installing and Running From Source
 
-To run **ZPay** from source you'll need to perform the following steps:
+To run **Zipher** from source you'll need to perform the following steps:
 ```bash
 # Ensure you have Node LTS v12+ (v14 recommended)
 # https://nodejs.org/en/
 
-# Clone Codebase (Community Fork with Latest Fixes)
-git clone https://github.com/VictorLux/ZPay
-# Or clone official repository:
-# git clone https://github.com/zclassicofficialgit/ZPay
+# Clone Codebase
+git clone https://github.com/VictorLux/Zipher
 
 # Install Dependencies
-# inside of the `ZPay` folder
+# inside of the `Zipher` folder
+cd Zipher
 yarn install
 # or
 npm install

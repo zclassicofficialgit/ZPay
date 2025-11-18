@@ -7,7 +7,7 @@ import { Transition, animated } from 'react-spring';
 import { type Match } from 'react-router-dom';
 
 import { FEES } from '../constants/fees';
-import { DARK } from '../constants/themes';
+import { C64 } from '../constants/themes';
 import { NODE_SYNC_TYPES } from '../constants/node-sync-types';
 import { FETCH_STATE } from '../constants/fetch-states';
 
@@ -129,7 +129,7 @@ const FeeWrapper = styled.div`
 const InfoCard = styled.div`
   width: 100%;
   background-color: ${props => props.theme.colors.sendCardBg};
-  border: 1px solid ${props => props.theme.colors.sendCardBorder}
+  border: 1px solid ${props => props.theme.colors.sendCardBorder};
   border-radius: ${props => props.theme.boxBorderRadius};
   margin-bottom: 10px;
 `;
@@ -153,6 +153,29 @@ const InfoCardSubLabel = styled(TextComponent)`
 const InfoCardUSD = styled(TextComponent)`
   opacity: 0.5;
   margin-top: 2.5px;
+`;
+
+const WarningBox = styled.div`
+  background-color: #FFF3CD;
+  border: 2px solid #FF6600;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 10px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+`;
+
+const WarningIcon = styled.span`
+  font-size: 20px;
+  flex-shrink: 0;
+`;
+
+const WarningText = styled.div`
+  color: #856404;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
 `;
 
 const FormButton = styled(Button)`
@@ -453,16 +476,29 @@ class Component extends PureComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
     const previousToAddress = prevProps.match.params.to;
     const toAddress = this.props.match.params.to; // eslint-disable-line
+    const { addresses, getAddressBalance } = this.props;
+    const { from } = this.state;
 
     if (toAddress && previousToAddress !== toAddress) this.handleChange('to')(toAddress);
+
+    // Auto-select first address when addresses are loaded
+    if (addresses.length > 0 && prevProps.addresses.length === 0 && !from) {
+      const firstAddress = addresses[0].address;
+      this.setState({ from: firstAddress });
+      getAddressBalance({ address: firstAddress });
+    }
   }
 
   updateTooltipVisibility = ({ balance, amount }: { balance: number, amount: number }) => {
     const { from, to, fee } = this.state;
     const feeValue = fee || 0;
 
+    // Check if total (amount + fee) exceeds balance
+    const totalNeeded = new BigNumber(amount).plus(feeValue);
+    const exceedsBalance = totalNeeded.gt(balance);
+
     this.setState({
-      showBalanceTooltip: !from || !to ? false : new BigNumber(amount).plus(feeValue).gt(balance),
+      showBalanceTooltip: !from || !to ? false : exceedsBalance,
     });
   };
 
@@ -480,9 +516,12 @@ class Component extends PureComponent<Props, State> {
     const { balance } = this.props;
     const { fee } = this.state;
 
-    const max = new BigNumber(balance).minus(fee || 0);
+    // Use a small buffer to account for rounding issues (0.00000001 ZCL)
+    const buffer = new BigNumber('0.00000001');
+    const max = new BigNumber(balance).minus(fee || 0).minus(buffer);
 
-    return max.isNegative() ? 0 : max.toNumber();
+    // Round down to 8 decimal places to avoid precision issues
+    return max.isNegative() ? 0 : max.decimalPlaces(8, BigNumber.ROUND_DOWN).toNumber();
   };
 
   handleChange = (field: string) => (value: string | number) => {
@@ -585,6 +624,19 @@ class Component extends PureComponent<Props, State> {
     if (feeValue.isEqualTo(FEES.HIGH)) return `High ${coinName} ${feeValue.toString()}`;
 
     return `Custom ${coinName} ${feeValue.toString()}`;
+  };
+
+  getReceivedAmountText = () => {
+    const { amount, fee } = this.state;
+    const coinName = getCoinName();
+
+    if (!amount || !fee) return `${coinName} 0.00`;
+
+    // For shielded transactions, the recipient receives the full amount
+    // The fee is deducted from the sender's balance separately
+    const receivedAmount = new BigNumber(amount);
+
+    return `${coinName} ${formatNumber({ value: receivedAmount.toNumber(), maxDecimals: 2 })}`;
   };
 
   renderValidationStatus = () => {
@@ -694,6 +746,13 @@ class Component extends PureComponent<Props, State> {
         <Divider opacity={0.3} />
         <ConfirmItemWrapper alignItems='center'>
           <ColumnComponent>
+            <ItemLabel value='RECIPIENT WILL RECEIVE' />
+            <TextComponent value={this.getReceivedAmountText()} />
+          </ColumnComponent>
+        </ConfirmItemWrapper>
+        <Divider opacity={0.3} />
+        <ConfirmItemWrapper alignItems='center'>
+          <ColumnComponent>
             <ItemLabel value='FROM' />
             <TextComponent value={from} />
           </ColumnComponent>
@@ -716,15 +775,19 @@ class Component extends PureComponent<Props, State> {
       from, amount, to, fee,
     } = this.state;
 
+    // Check if total (amount + fee) exceeds balance
+    const totalNeeded = new BigNumber(amount || 0).plus(fee || 0);
+    const exceedsBalance = totalNeeded.gt(balance);
+
     return (
       !from
       || !amount
       || !to
       || !fee
       || !isToAddressValid
-      || new BigNumber(amount).gt(balance)
+      || exceedsBalance
       || !this.isMemoContentValid()
-      || nodeSyncType !== NODE_SYNC_TYPES.READY
+      || nodeSyncType === NODE_SYNC_TYPES.SYNCING
     );
   };
 
@@ -775,23 +838,26 @@ class Component extends PureComponent<Props, State> {
     const fixedAmount = isEmpty || new BigNumber(amount).eq(0) ? 0 : this.getAmountWithFee();
     const coinName = getCoinName();
 
-    const zclBalance = formatNumber({ value: balance, append: `${coinName} ` });
+    const zclBalance = formatNumber({ value: balance, append: `${coinName} `, maxDecimals: 2 });
     const zclBalanceInUsd = formatNumber({
       value: new BigNumber(balance).times(zclPrice).toNumber(),
       append: 'USD $',
+      maxDecimals: 2,
     });
     const valueSent = formatNumber({
-      value: new BigNumber(fixedAmount).toFormat(4),
+      value: fixedAmount,
       append: `${coinName} `,
+      maxDecimals: 2,
     });
     const valueSentInUsd = formatNumber({
       value: new BigNumber(fixedAmount).times(zclPrice).toNumber(),
       append: 'USD $',
+      maxDecimals: 2,
     });
 
-    const seeMoreIcon = theme.mode === DARK ? MenuIconDark : MenuIconLight;
+    const seeMoreIcon = theme.mode === C64 ? MenuIconDark : MenuIconLight;
 
-    const arrowUpIcon = theme.mode === DARK ? ArrowUpIconDark : ArrowUpIconLight;
+    const arrowUpIcon = theme.mode === C64 ? ArrowUpIconDark : ArrowUpIconLight;
 
     const shouldShowMemoField = this.shouldShowMemoField();
     const isValidMemo = this.isMemoContentValid();
@@ -808,6 +874,7 @@ class Component extends PureComponent<Props, State> {
               label: `[ ${formatNumber({
                 append: `${coinName} `,
                 value: addressBalance,
+                maxDecimals: 2,
               })} ]  ${address}`,
               value: address,
             }))}
@@ -829,7 +896,8 @@ class Component extends PureComponent<Props, State> {
               onChange={this.handleChange('amount')}
               value={String(amount)}
               placeholder={`${coinName} 0.0`}
-              min={0.01}
+              min={0.00000001}
+              step={0.00000001}
               name='amount'
             />
           </AmountWrapper>
@@ -909,8 +977,8 @@ class Component extends PureComponent<Props, State> {
                             onChange={this.handleChange('fee')}
                             value={String(fee)}
                             disabled={feeType !== FEES.CUSTOM}
-                            bgColor={theme.colors.sendAdditionalInputBg(this.props)}
-                            color={theme.colors.sendAdditionalInputText(this.props)}
+                            bgColor={theme.colors.sendAdditionalInputBg}
+                            color={theme.colors.sendAdditionalInputText}
                             name='fee'
                           />
                         </ColumnComponent>
@@ -918,7 +986,7 @@ class Component extends PureComponent<Props, State> {
                           <SelectComponent
                             placement='top'
                             value={String(feeType)}
-                            bgColor={theme.colors.sendAdditionalInputBg(this.props)}
+                            bgColor={theme.colors.sendAdditionalInputBg}
                             onChange={this.handleChangeFeeType}
                             options={Object.keys(FEES).map(cur => ({
                               label: cur.toLowerCase(),
@@ -954,6 +1022,14 @@ class Component extends PureComponent<Props, State> {
               <InfoCardUSD value={valueSentInUsd} size={0.84375} />
             </InfoContent>
           </InfoCard>
+          {showBalanceTooltip && (
+            <WarningBox>
+              <WarningIcon>⚠️</WarningIcon>
+              <WarningText>
+                Insufficient funds! The total amount (including fees) exceeds your available balance.
+              </WarningText>
+            </WarningBox>
+          )}
           <ConfirmDialogComponent
             title='Transaction Status'
             onConfirm={this.handleSubmit}
@@ -961,9 +1037,9 @@ class Component extends PureComponent<Props, State> {
             onClose={this.reset}
             renderTrigger={toggle => (
               <SendButtonWrapper>
-                {nodeSyncType !== NODE_SYNC_TYPES.READY && (
+                {nodeSyncType === NODE_SYNC_TYPES.SYNCING && (
                   <SimpleTooltip>
-                    <TooltipText value='Cannot send until data is synced.' />
+                    <TooltipText value='Cannot send until blockchain is synced.' />
                   </SimpleTooltip>
                 )}
                 {!showBalanceTooltip ? null : (

@@ -22,6 +22,15 @@ import { registerIPCHandlers } from './ipc-handlers';
 
 dotenv.config();
 
+// Initialize @electron/remote if available
+let remoteMain;
+try {
+  remoteMain = require('@electron/remote/main');
+  remoteMain.initialize();
+} catch (e) {
+  console.log('@electron/remote not available, skipping initialization');
+}
+
 let mainWindow: BrowserWindowType;
 let updateAvailable: boolean = false;
 let zclassicDaemon;
@@ -58,6 +67,7 @@ const createWindow = () => {
   });
 
   mainWindow = new BrowserWindow({
+    title: 'Zipher Classic - System 7.0',
     minWidth: 815,
     minHeight: 600,
     width: 1000,
@@ -80,10 +90,24 @@ const createWindow = () => {
   mainWindow.setVisibleOnAllWorkspaces(true);
   registerDebugShortcut(app, mainWindow);
 
-  // TEMPORARY FIX: Always load from build directory (webpack-dev-server not running)
-  mainWindow.loadURL(
-    `file://${path.join(__dirname, '../build/index.html')}`,
-  );
+  // Enable remote for this window if available
+  if (remoteMain) {
+    remoteMain.enable(mainWindow.webContents);
+  }
+
+  // Automatically open DevTools for debugging
+  mainWindow.webContents.openDevTools();
+
+  // Check if we're in development or production
+  if (isDev) {
+    // In development, use webpack-dev-server
+    mainWindow.loadURL('http://localhost:8080');
+  } else {
+    // In production, use the built files
+    mainWindow.loadURL(
+      `file://${path.join(__dirname, '../build/index.html')}`,
+    );
+  }
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(MENU));
 

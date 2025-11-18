@@ -53,3 +53,27 @@ wallet.dat*
 *password*
 *secret*
 credentials.json
+
+# Bootstrap scripts - EXCLUDE scripts with credentials
+scripts/create-optimized-bootstrap.sh
+scripts/create-upload-bootstrap.sh
+scripts/upload-to-backblaze.sh
+scripts/github-release-upload-monitored.sh
+scripts/github-release-upload-parallel.sh
+scripts/test-download-parallel.sh
+scripts/create-production-bootstrap.sh
+
+# Bootstrap config with credentials (PRIVATE)
+.zipher_bootstrap_config
+*bootstrap_config*
+*archive.org*
+*internet_archive*
+
+# Documentation files (local/private)
+BOOTSTRAP_CONFIRMATION.md
+BOOTSTRAP_READY_TO_TEST.md
+ELECTRUMX_CONNECTION_INFO.md
+ELECTRUMX_THROTTLING_ISSUE.md
+ELECTRUM_WALLET_COMPATIBILITY_ISSUE.md
+FIX_CORRUPTED_INDEX.md
+ORACLE_CLOUD_SECURITY_GUIDE.md

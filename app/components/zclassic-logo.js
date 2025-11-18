@@ -16,5 +16,5 @@ const ZclImg = styled.img`
 `;
 
 export const ZclassicLogo = () => (
-  <ZclImg src={zclLogo} alt='ZPay Logo' />
+  <ZclImg src={zclLogo} alt='Zipher Logo' />
 );

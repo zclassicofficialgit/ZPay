@@ -155,14 +155,14 @@ const runDaemon: () => Promise<?ChildProcess> = () => new Promise(async (resolve
   if (optionsFromZclassicConf.rpcuser) store.set('rpcuser', optionsFromZclassicConf.rpcuser);
   if (optionsFromZclassicConf.rpcpassword) store.set('rpcpassword', optionsFromZclassicConf.rpcpassword);
 
-  log('Searching for zcashd.pid');
+  log('Searching for daemon PID file (zcashd.pid or zclassicd.pid)');
   const daemonProcessId = getDaemonProcessId(optionsFromZclassicConf.datadir);
 
   if (daemonProcessId) {
     store.set(EMBEDDED_DAEMON, false);
     log(
       // eslint-disable-next-line
-        `A daemon was found running in PID: ${daemonProcessId}. Starting ZPay in external daemon mode.`,
+        `A Zclassic daemon was found running in PID: ${daemonProcessId}. Starting ZPay in external daemon mode.`,
     );
 
     // Command line args override zclassic.conf
@@ -191,7 +191,7 @@ const runDaemon: () => Promise<?ChildProcess> = () => new Promise(async (resolve
   }
 
   log(
-    "ZPay couldn't find a `zcashd.pid`, that means there is no instance of zclassic running on the machine, trying start built-in daemon",
+    "No external Zclassic daemon detected. Starting built-in daemon...",
   );
 
   store.set(EMBEDDED_DAEMON, true);
