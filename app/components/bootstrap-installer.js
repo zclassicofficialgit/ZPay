@@ -6,14 +6,12 @@
 
 import React, { Component } from 'react';
 import styled from 'styled-components';
+import eres from 'eres';
 
 import {
   installBootstrap,
   fetchBootstrapMetadata,
-  shouldRecommendBootstrap,
-  getEstimatedInstallTime,
 } from '../../services/bootstrap-installer';
-import eres from 'eres';
 
 const Wrapper = styled.div`
   width: 600px;
@@ -122,26 +120,28 @@ const Button = styled.button`
   cursor: pointer;
   transition: background 0.2s;
 
-  ${props =>
-    props.primary
-      ? `
-    background: ${props.theme.colors.buttonPrimaryBg};
-    color: ${props.theme.colors.buttonPrimaryText};
-    border: 1px solid ${props.theme.colors.buttonBorder};
+  ${(props) => {
+    if (props.primary) {
+      return `
+        background: ${props.theme.colors.buttonPrimaryBg};
+        color: ${props.theme.colors.buttonPrimaryText};
+        border: 1px solid ${props.theme.colors.buttonBorder};
 
-    &:hover:not(:disabled) {
-      background: ${props.theme.colors.buttonPrimaryHover};
+        &:hover:not(:disabled) {
+          background: ${props.theme.colors.buttonPrimaryHover};
+        }
+      `;
     }
-  `
-      : `
-    background: ${props.theme.colors.buttonSecondaryBg};
-    color: ${props.theme.colors.buttonSecondaryText};
-    border: 1px solid ${props.theme.colors.buttonBorder};
+    return `
+      background: ${props.theme.colors.buttonSecondaryBg};
+      color: ${props.theme.colors.buttonSecondaryText};
+      border: 1px solid ${props.theme.colors.buttonBorder};
 
-    &:hover:not(:disabled) {
-      background: ${props.theme.colors.buttonSecondaryHover};
-    }
-  `}
+      &:hover:not(:disabled) {
+        background: ${props.theme.colors.buttonSecondaryHover};
+      }
+    `;
+  }}
 
   &:disabled {
     opacity: 0.5;
@@ -270,17 +270,23 @@ export class BootstrapInstaller extends Component<Props, State> {
   };
 
   handleComplete = () => {
-    this.props.onComplete();
-    this.props.onClose();
+    const { onComplete, onClose } = this.props;
+    onComplete();
+    onClose();
   };
 
   renderInitialView() {
     const { metadata, loading, error } = this.state;
+    const { onClose } = this.props;
 
     if (loading) {
       return (
         <Wrapper>
-          <Title>⚡ Fast Sync with Bootstrap</Title>
+          <Title>
+            <span role='img' aria-label='lightning'>⚡</span>
+            {' '}
+            Fast Sync with Bootstrap
+          </Title>
           <Description>Loading bootstrap information...</Description>
         </Wrapper>
       );
@@ -289,10 +295,18 @@ export class BootstrapInstaller extends Component<Props, State> {
     if (error || !metadata) {
       return (
         <Wrapper>
-          <Title>⚡ Fast Sync with Bootstrap</Title>
-          <Description style={{ color: '#FF0000' }}>{error || 'Failed to load'}</Description>
+          <Title>
+            <span role='img' aria-label='lightning'>⚡</span>
+            {' '}
+            Fast Sync with Bootstrap
+          </Title>
+          <Description style={{ color: '#FF0000' }}>
+            {error || 'Failed to load'}
+          </Description>
           <ButtonRow>
-            <Button onClick={this.props.onClose}>Close</Button>
+            <Button onClick={onClose}>
+              Close
+            </Button>
             <Button primary onClick={this.loadMetadata}>
               Retry
             </Button>
@@ -313,25 +327,31 @@ export class BootstrapInstaller extends Component<Props, State> {
         <InfoBox>
           <InfoItem>
             <InfoLabel>Download Size:</InfoLabel>
-            <InfoValue>{metadata.bootstrap.size_human}</InfoValue>
+            <InfoValue>
+              {metadata.total_size_gb}
+              {' '}
+GB
+            </InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Block Height:</InfoLabel>
-            <InfoValue>~{metadata.bootstrap.block_height_estimate.toLocaleString()}</InfoValue>
+            <InfoValue>{metadata.block_height.toLocaleString()}</InfoValue>
           </InfoItem>
           <InfoItem>
-            <InfoLabel>Block Files:</InfoLabel>
-            <InfoValue>{metadata.bootstrap.block_count}</InfoValue>
+            <InfoLabel>Number of Parts:</InfoLabel>
+            <InfoValue>
+              {metadata.total_parts}
+              {' '}
+files
+            </InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Estimated Time:</InfoLabel>
-            <InfoValue>{metadata.installation.total_estimated_minutes} minutes</InfoValue>
+            <InfoValue>15-30 minutes (depending on internet speed)</InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Created:</InfoLabel>
-            <InfoValue>
-              {new Date(metadata.bootstrap.created).toLocaleDateString()}
-            </InfoValue>
+            <InfoValue>{metadata.block_time_human}</InfoValue>
           </InfoItem>
         </InfoBox>
 
@@ -345,7 +365,8 @@ export class BootstrapInstaller extends Component<Props, State> {
             • The daemon will be restarted after installation
             <br />
             • Index rebuild will take 10-30 minutes after extraction
-            <br />• Do not close Zipher during installation
+            <br />
+• Do not close Zipher during installation
           </WarningText>
         </WarningBox>
 
@@ -366,6 +387,7 @@ export class BootstrapInstaller extends Component<Props, State> {
       init: 'Initializing',
       backup: 'Backing Up Wallet',
       download: 'Downloading Bootstrap',
+      combine: 'Combining Archive Parts',
       verify: 'Verifying Download',
       cleanup: 'Preparing Installation',
       extract: 'Extracting Blockchain Data',
@@ -383,7 +405,10 @@ export class BootstrapInstaller extends Component<Props, State> {
         <ProgressSection>
           <ProgressBar>
             <ProgressFill progress={progress} />
-            <ProgressText>{progress.toFixed(0)}%</ProgressText>
+            <ProgressText>
+              {progress.toFixed(0)}
+%
+            </ProgressText>
           </ProgressBar>
 
           <StageText>
@@ -463,10 +488,11 @@ export class BootstrapInstaller extends Component<Props, State> {
             <br />
             • Check your internet connection
             <br />
-            • Make sure you have enough disk space (~2GB)
+            • Make sure you have enough disk space (~20GB)
             <br />
             • Restart Zipher and try again
-            <br />• If the problem persists, sync normally without bootstrap
+            <br />
+• If the problem persists, sync normally without bootstrap
           </WarningText>
         </WarningBox>
 

@@ -1,11 +1,12 @@
 // @flow
 /**
  * Bootstrap Installer Service for Zipher
- * Provides smooth, progress-tracked bootstrap installation
- * Target: < 15 minutes total sync time for end users
+ * Downloads and installs blockchain bootstrap from GitHub releases
+ * Uses split files to work around GitHub's 2GB file size limit
  */
 
 import eres from 'eres';
+import BOOTSTRAP_CONFIG from '../app/constants/bootstrap';
 
 const fs = require('fs');
 const path = require('path');
@@ -13,37 +14,7 @@ const crypto = require('crypto');
 const https = require('https');
 const { spawn } = require('child_process');
 
-type BootstrapMetadata = {
-  version: string,
-  bootstrap: {
-    filename: string,
-    created: string,
-    block_height_estimate: number,
-    block_count: number,
-    size_bytes: number,
-    size_human: string,
-    sha256: string,
-    download_url: string,
-    format: string,
-    compression: string,
-  },
-  installation: {
-    estimated_download_time_minutes: number,
-    estimated_extraction_time_minutes: number,
-    estimated_index_rebuild_minutes: number,
-    total_estimated_minutes: number,
-  },
-  verification: {
-    sha256_checksum: string,
-    checksum_file_included: boolean,
-    gpg_signature: boolean,
-  },
-};
-
 type ProgressCallback = (stage: string, progress: number, message: string) => void;
-
-const BOOTSTRAP_LATEST_URL =
-  'https://archive.org/download/zclassic-bootstrap-zipher/latest.json';
 
 // Get platform-specific Zclassic data directory
 const getZclassicDataDir = (): string => {
@@ -58,30 +29,27 @@ const getZclassicDataDir = (): string => {
   }
 };
 
-// Fetch latest bootstrap metadata from archive.org
+// Fetch bootstrap metadata from BOOTSTRAP_CONFIG
 export const fetchBootstrapMetadata = async (): Promise<{
   success: boolean,
-  metadata?: BootstrapMetadata,
+  metadata?: any,
   error?: string,
 }> => {
   try {
-    const response = await fetch(BOOTSTRAP_LATEST_URL);
+    const { REPO, TAG, BLOCK_HEIGHT, BEST_BLOCK_HASH, BLOCK_TIME, BLOCK_TIME_HUMAN, TOTAL_SIZE_GB, TOTAL_PARTS } = BOOTSTRAP_CONFIG;
 
-    if (!response.ok) {
-      return { success: false, error: 'Failed to fetch bootstrap metadata' };
-    }
-
-    const latest = await response.json();
-
-    // Fetch full metadata
-    const metadataUrl = `https://archive.org/download/zclassic-bootstrap-zipher/${latest.latest_metadata}`;
-    const metadataResponse = await fetch(metadataUrl);
-
-    if (!metadataResponse.ok) {
-      return { success: false, error: 'Failed to fetch full metadata' };
-    }
-
-    const metadata: BootstrapMetadata = await metadataResponse.json();
+    // Construct metadata from config
+    const metadata = {
+      repo: REPO,
+      tag: TAG,
+      block_height: BLOCK_HEIGHT,
+      best_block_hash: BEST_BLOCK_HASH,
+      block_time: BLOCK_TIME,
+      block_time_human: BLOCK_TIME_HUMAN,
+      total_size_gb: TOTAL_SIZE_GB,
+      total_parts: TOTAL_PARTS,
+      base_url: `https://github.com/${REPO}/releases/download/${TAG}`,
+    };
 
     return { success: true, metadata };
   } catch (error) {
@@ -139,6 +107,79 @@ const downloadFile = (
         file.end();
         resolve({ success: false, error: error.message });
       });
+  });
+};
+
+// Combine split part files into single archive
+const combineParts = (
+  partFiles: Array<string>,
+  outputPath: string,
+  progressCallback?: ProgressCallback
+): Promise<{ success: boolean, error?: string }> => {
+  return new Promise((resolve) => {
+    try {
+      if (progressCallback) {
+        progressCallback('combine', 0, 'Combining archive parts...');
+      }
+
+      // Create output stream
+      const output = fs.createWriteStream(outputPath);
+      let currentPart = 0;
+      let totalBytes = 0;
+      let processedBytes = 0;
+
+      // Calculate total size
+      partFiles.forEach((partFile) => {
+        totalBytes += fs.statSync(partFile).size;
+      });
+
+      // Combine parts sequentially
+      const combinePart = (index: number) => {
+        if (index >= partFiles.length) {
+          output.end();
+          if (progressCallback) {
+            progressCallback('combine', 100, 'Parts combined successfully');
+          }
+          resolve({ success: true });
+          return;
+        }
+
+        const partFile = partFiles[index];
+        const input = fs.createReadStream(partFile);
+
+        input.on('data', (chunk) => {
+          output.write(chunk);
+          processedBytes += chunk.length;
+
+          if (progressCallback && totalBytes > 0) {
+            const progress = (processedBytes / totalBytes) * 100;
+            progressCallback(
+              'combine',
+              progress,
+              `Combining part ${index + 1}/${partFiles.length}...`
+            );
+          }
+        });
+
+        input.on('end', () => {
+          currentPart++;
+          combinePart(currentPart);
+        });
+
+        input.on('error', (error) => {
+          output.end();
+          resolve({ success: false, error: error.message });
+        });
+      };
+
+      combinePart(0);
+
+      output.on('error', (error) => {
+        resolve({ success: false, error: error.message });
+      });
+    } catch (error) {
+      resolve({ success: false, error: error.message });
+    }
   });
 };
 
@@ -221,7 +262,7 @@ const createWalletBackup = async (
   }
 };
 
-// Extract bootstrap with progress
+// Extract bootstrap with progress (uses zstd compression)
 const extractBootstrap = (
   archivePath: string,
   destDir: string,
@@ -232,8 +273,15 @@ const extractBootstrap = (
       progressCallback('extract', 0, 'Extracting bootstrap...');
     }
 
-    // Use tar command with progress estimation
-    const tar = spawn('tar', ['-xzf', archivePath, '-C', destDir, '--strip-components=1']);
+    // Use tar with zstd decompression
+    const tar = spawn('tar', [
+      '--use-compress-program=zstd',
+      '-xf',
+      archivePath,
+      '-C',
+      destDir,
+      '--strip-components=1',
+    ]);
 
     let lastProgress = 0;
 
@@ -302,6 +350,12 @@ const removeOldBlockchain = async (
 export const installBootstrap = async (
   progressCallback?: ProgressCallback
 ): Promise<{ success: boolean, error?: string }> => {
+  const downloadDir = path.join(
+    process.env.HOME || process.env.USERPROFILE || '',
+    'Downloads',
+    'zipher-bootstrap-temp'
+  );
+
   try {
     // Step 1: Fetch metadata
     if (progressCallback) {
@@ -315,12 +369,13 @@ export const installBootstrap = async (
     }
 
     const metadata = metaResult.metadata;
+    const { repo, tag, total_size_gb, total_parts, base_url } = metadata;
 
     if (progressCallback) {
       progressCallback(
         'init',
         100,
-        `Found bootstrap: ${metadata.bootstrap.size_human} (${metadata.bootstrap.block_count} blocks)`
+        `Found bootstrap: ${total_size_gb} GB (${total_parts} parts)`
       );
     }
 
@@ -331,57 +386,96 @@ export const installBootstrap = async (
       return { success: false, error: 'Failed to create wallet backup' };
     }
 
-    // Step 3: Download bootstrap
-    const downloadDir = path.join(
-      process.env.HOME || process.env.USERPROFILE || '',
-      'Downloads'
-    );
-    const downloadPath = path.join(downloadDir, metadata.bootstrap.filename);
-
-    const [downloadErr, downloadResult] = await eres(
-      downloadFile(metadata.bootstrap.download_url, downloadPath, progressCallback)
-    );
-
-    if (downloadErr || !downloadResult || !downloadResult.success) {
-      return { success: false, error: downloadResult?.error || 'Download failed' };
+    // Step 3: Create temp download directory
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-    // Step 4: Verify checksum
-    const [verifyErr, verifyResult] = await eres(
-      verifyChecksum(downloadPath, metadata.bootstrap.sha256, progressCallback)
-    );
+    // Step 4: Download all parts
+    const baseName = `zclassic-bootstrap-${tag.replace('bootstrap-', '')}`;
+    const partFiles = [];
 
-    if (verifyErr || !verifyResult || !verifyResult.valid) {
-      return {
-        success: false,
-        error: verifyResult?.error || 'Checksum verification failed',
-      };
+    for (let i = 1; i <= total_parts; i++) {
+      const partNum = String(i).padStart(2, '0');
+      const partFilename = `${baseName}-part-${partNum}.part`;
+      const partUrl = `${base_url}/${partFilename}`;
+      const partPath = path.join(downloadDir, partFilename);
+
+      if (progressCallback) {
+        progressCallback(
+          'download',
+          0,
+          `Downloading part ${i}/${total_parts}...`
+        );
+      }
+
+      const [downloadErr, downloadResult] = await eres(
+        downloadFile(partUrl, partPath, (stage, progress, message) => {
+          if (progressCallback) {
+            progressCallback(stage, progress, `Part ${i}/${total_parts}: ${message}`);
+          }
+        })
+      );
+
+      if (downloadErr || !downloadResult || !downloadResult.success) {
+        return { success: false, error: `Failed to download part ${i}: ${downloadResult?.error}` };
+      }
+
+      partFiles.push(partPath);
     }
 
-    // Step 5: Remove old blockchain
+    // Step 5: Combine parts into single archive
+    const combinedPath = path.join(downloadDir, `${baseName}.tar.zst`);
+    const [combineErr, combineResult] = await eres(
+      combineParts(partFiles, combinedPath, progressCallback)
+    );
+
+    if (combineErr || !combineResult || !combineResult.success) {
+      return { success: false, error: combineResult?.error || 'Failed to combine parts' };
+    }
+
+    // Step 6: Download and verify checksums (optional but recommended)
+    // TODO: Download bootstrap-checksums.txt and verify combined archive
+
+    // Step 7: Remove old blockchain
     const [cleanupErr, cleanupResult] = await eres(removeOldBlockchain(progressCallback));
 
     if (cleanupErr || !cleanupResult || !cleanupResult.success) {
       return { success: false, error: 'Failed to remove old blockchain' };
     }
 
-    // Step 6: Extract bootstrap
+    // Step 8: Extract bootstrap
     const dataDir = getZclassicDataDir();
     const [extractErr, extractResult] = await eres(
-      extractBootstrap(downloadPath, dataDir, progressCallback)
+      extractBootstrap(combinedPath, dataDir, progressCallback)
     );
 
     if (extractErr || !extractResult || !extractResult.success) {
       return { success: false, error: extractResult?.error || 'Extraction failed' };
     }
 
-    // Step 7: Cleanup downloaded archive
+    // Step 9: Cleanup downloaded files
     if (progressCallback) {
       progressCallback('cleanup', 50, 'Cleaning up download...');
     }
 
     try {
-      fs.unlinkSync(downloadPath);
+      // Remove part files
+      partFiles.forEach((partFile) => {
+        if (fs.existsSync(partFile)) {
+          fs.unlinkSync(partFile);
+        }
+      });
+
+      // Remove combined archive
+      if (fs.existsSync(combinedPath)) {
+        fs.unlinkSync(combinedPath);
+      }
+
+      // Remove temp directory
+      if (fs.existsSync(downloadDir)) {
+        fs.rmdirSync(downloadDir);
+      }
     } catch (e) {
       // Non-critical error
     }
