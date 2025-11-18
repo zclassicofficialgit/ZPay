@@ -72,8 +72,6 @@ Zipher is an experimental Sapling-enabled shielded-address-first Zclassic wallet
 ### [Blockchain Bootstrap Releases](https://github.com/VictorLux/Zipher/releases) - Fast sync your node!
 ### [Original ZPay Wallet](https://github.com/zclassicofficialgit/ZPay)
 
-![Zipher Wallet](https://github.com/zclassicofficialgit/ZPay/blob/1.0/app/assets/images/dashboard.png)
-
 ## Stack Information
 
 List of the main open source libraries and technologies used in building **ZPay**:
