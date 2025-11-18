@@ -1,6 +1,31 @@
 # Changelog
 
-All notable changes to ZPay will be documented in this file.
+All notable changes to Zipher will be documented in this file.
+
+## [1.0.0] - 2025-11-18
+
+### Added
+
+#### Blockchain Bootstrap Feature
+- Automated blockchain bootstrap download and installation
+- Detects when bootstrap is needed (missing or outdated blockchain data)
+- Downloads 7.73 GB bootstrap from GitHub releases (split into 5 parts)
+- Parallel download support for faster speeds
+- SHA256 checksum verification
+- Automatic extraction to Zclassic data directory
+- Progress tracking with status updates
+- User can skip or cancel installation
+- Comprehensive error handling and recovery
+- Components: `app/components/bootstrap-installer.js`, `services/bootstrap-installer.js`
+
+### Fixed
+
+#### Production Build Issues
+- Fixed `@babel/core` dependency error by moving from devDependencies to dependencies
+- Removed invalid Flow type syntax that caused SyntaxError in production builds
+- Removed Flow type annotations from `config/electron.js` (lines 34, 35, 122)
+- Production builds now launch successfully without syntax errors
+- Fixed: `SyntaxError: Unexpected token` when loading electron.js in production
 
 ## [Unreleased] - 2025-11-12
 

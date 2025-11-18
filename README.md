@@ -51,7 +51,14 @@ Zipher is an experimental Sapling-enabled shielded-address-first Zclassic wallet
 
 ## 🚀 Latest Updates (November 2025)
 
-**New features and bug fixes:**
+**Version 1.0.0 Release - New Features:**
+- ✅ **Automated Bootstrap Download** - Fast-sync your blockchain in minutes instead of hours!
+- ✅ **SHA256 Verification** - Automatic checksum validation for security
+- ✅ **Parallel Downloads** - Multi-threaded downloading for maximum speed
+- ✅ **Progress Tracking** - Real-time status updates during installation
+
+**Bug Fixes:**
+- ✅ Fixed production build errors (Babel and Flow syntax issues)
 - ✅ Fixed sync status display (now shows 100% when fully synced)
 - ✅ Updated ZCL price API (CoinGecko integration)
 - ✅ Fixed transaction sending with proper balance validation
