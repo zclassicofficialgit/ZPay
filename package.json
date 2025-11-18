@@ -219,6 +219,7 @@
   },
   "dependencies": {
     "@astrocoders/create-test-server": "^3.0.2",
+    "@babel/core": "^7.6.2",
     "@babel/polyfill": "^7.0.0",
     "@babel/register": "^7.0.0",
     "@babel/runtime": "^7.28.4",
