@@ -56,7 +56,7 @@
   "build": {
     "appId": "com.zipher.wallet",
     "productName": "Zipher",
-    "asar": true,
+    "asar": false,
     "electronCompile": false,
     "directories": {
       "buildResources": "build",
