@@ -8,17 +8,17 @@
 
 export const BOOTSTRAP_CONFIG = {
   // GitHub Release Information
-  REPO: 'VictorLux/Zipher',
-  TAG: 'bootstrap-YYYYMMDD_HHMMSS', // Update with actual tag after upload
+  REPO: 'VictorLux/zclassic-bootstrap',
+  TAG: 'bootstrap-20251118_145535',
 
   // Blockchain Metadata
-  BLOCK_HEIGHT: 0, // Update with actual block height
-  BEST_BLOCK_HASH: '', // Update with actual block hash
-  BLOCK_TIME: 0, // Unix timestamp
-  BLOCK_TIME_HUMAN: '', // Human-readable date
+  BLOCK_HEIGHT: 2914022,
+  BEST_BLOCK_HASH: '00000453720f73d13643a08cbfa966c5a917f7c488459066e7baadcb8bb178f3',
+  BLOCK_TIME: 1731943638, // Unix timestamp for 2025-11-18 14:53:58
+  BLOCK_TIME_HUMAN: '2025-11-18 14:53:58',
 
   // File Information
-  TOTAL_SIZE_GB: 0, // Total size in GB
+  TOTAL_SIZE_GB: 7.73, // Total size in GB
   TOTAL_PARTS: 5, // Number of split files
 
   // SHA256 Checksums (will be verified during download)
