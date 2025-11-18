@@ -9,7 +9,6 @@ import path from 'path';
 import {
   app, BrowserWindow, Menu,
 } from 'electron';
-import type { BrowserWindow as BrowserWindowType } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import isDev from 'electron-is-dev';
 import { registerDebugShortcut } from '../utils/debug-shortcut';
@@ -32,8 +31,8 @@ try {
   console.log('@electron/remote not available, skipping initialization');
 }
 
-let mainWindow: BrowserWindowType;
-let updateAvailable: boolean = false;
+let mainWindow;
+let updateAvailable = false;
 let zclassicDaemon;
 
 const showStatus = (text) => {
@@ -120,7 +119,7 @@ app.setAsDefaultProtocolClient('zclassic');
 
 const instanceLock = app.requestSingleInstanceLock();
 if (instanceLock) {
-  app.on('second-instance', (event: Object, argv: string[]) => {
+  app.on('second-instance', (event, argv) => {
     handleDeeplink({
       app,
       mainWindow,
