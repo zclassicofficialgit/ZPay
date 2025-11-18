@@ -25,12 +25,14 @@ All notable changes to Zipher will be documented in this file.
 - Reverted config/main.js to use `electron-compile.init()` instead of `@babel/register`
 - Removed invalid Flow type syntax that caused SyntaxError in production builds
 - Removed Flow type annotations from `config/electron.js` (lines 34, 35, 122)
-- Fixed Babel version incompatibility by enabling ASAR packaging:
+- Fixed Babel version incompatibility during production builds:
   - Changed `"asar": false` to `"asar": true` in package.json
   - Moved `electron-compilers` from dependencies to devDependencies
   - Removed `"electronCompile": false` setting
-  - Files are now pre-compiled during build, not at runtime
-  - Eliminates .babelrc Babel 6 vs 7 conflict at runtime
+  - Added `scripts/fix-babel-bridge.sh` to remove nested babel-core@6.26.3
+  - Added `postinstall` hook to run fix script automatically
+  - Files are now pre-compiled during build using babel-core@7.0.0-bridge.0
+  - Eliminates Babel 6/7 plugin incompatibility at build time
 - Production builds now launch successfully without syntax errors
 - Fixed: `SyntaxError: Unexpected token` when loading electron.js in production
 - Fixed: `Cannot find module '@babel/plugin-transform-regenerator'` error
