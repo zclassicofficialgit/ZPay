@@ -95,13 +95,12 @@ const createWindow = () => {
     remoteMain.enable(mainWindow.webContents);
   }
 
-  // Automatically open DevTools for debugging
-  mainWindow.webContents.openDevTools();
-
   // Check if we're in development or production
   if (isDev) {
     // In development, use webpack-dev-server
     mainWindow.loadURL('http://localhost:8080');
+    // Open DevTools in development mode only
+    mainWindow.webContents.openDevTools();
   } else {
     // In production, use the built files
     mainWindow.loadURL(

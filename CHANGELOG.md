@@ -21,22 +21,14 @@ All notable changes to Zipher will be documented in this file.
 ### Fixed
 
 #### Production Build Issues
-- Fixed `@babel/core` dependency error by moving from devDependencies to dependencies
-- Fixed missing Babel plugins/presets in production by moving all required packages to dependencies:
-  - @babel/plugin-proposal-class-properties
-  - @babel/plugin-proposal-object-rest-spread
-  - @babel/plugin-proposal-optional-chaining
-  - @babel/plugin-syntax-dynamic-import
-  - @babel/plugin-transform-regenerator
-  - @babel/preset-env
-  - @babel/preset-flow
-  - @babel/preset-react
+- Fixed main process transpilation by reverting to `electron-compile` (matching ZPay)
+- Reverted config/main.js to use `electron-compile.init()` instead of `@babel/register`
 - Removed invalid Flow type syntax that caused SyntaxError in production builds
 - Removed Flow type annotations from `config/electron.js` (lines 34, 35, 122)
-- Configured @babel/register with full Babel presets to transpile ES6 imports in main process
 - Production builds now launch successfully without syntax errors
 - Fixed: `SyntaxError: Unexpected token` when loading electron.js in production
 - Fixed: `Cannot find module '@babel/plugin-transform-regenerator'` error
+- Root cause: @babel/register cannot resolve plugins in production; electron-compile handles this correctly
 
 ## [Unreleased] - 2025-11-12
 
