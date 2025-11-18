@@ -4,7 +4,7 @@ import { openExternal } from './utils/open-external';
 import packageJson from '../package.json';
 
 const DOCS_URL = 'https://zclassic-ce.org/';
-const REPOSITORY_URL = 'https://github.com/ZclassicFoundation/ZPay/issues';
+const REPOSITORY_URL = 'https://github.com/VictorLux/Zipher/issues';
 
 const menu = [
   {
@@ -32,7 +32,7 @@ const helpMenu = {
   role: 'help',
   submenu: [
     {
-      label: `Zpay Version v${packageJson.version}`,
+      label: `Zipher Version v${packageJson.version}`,
       enabled: false,
     },
     { type: 'separator' },
