@@ -345,6 +345,11 @@ const extractBootstrap = (
       progressCallback('extract', 0, 'Preparing extraction...');
     }
 
+    // Ensure destination directory exists
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
     const fileSize = fs.statSync(archivePath).size;
     if (progressCallback) {
       progressCallback('extract', 5, `Extracting ${(fileSize / 1024 / 1024 / 1024).toFixed(2)} GB archive...`);
@@ -356,15 +361,31 @@ const extractBootstrap = (
     const platform = process.platform;
 
     // Determine bundled zstd path
+    // In production (app.asar), binaries are unpacked to app.asar.unpacked
+    // In development, they're in the source directory
     let bundledZstd;
     let zstdCommand;
 
+    // Try to find the bundled binary in the unpacked resources first (production)
+    const resourcesPath = process.resourcesPath || path.join(__dirname, '..');
+    const unpackedPath = path.join(resourcesPath, 'app.asar.unpacked', 'bin', 'zstd');
+    const devPath = path.join(__dirname, '../bin/zstd');
+
     if (platform === 'darwin') {
-      bundledZstd = path.join(__dirname, '../bin/zstd/mac/zstd');
+      bundledZstd = path.join(unpackedPath, 'mac/zstd');
+      if (!fs.existsSync(bundledZstd)) {
+        bundledZstd = path.join(devPath, 'mac/zstd');
+      }
     } else if (platform === 'win32') {
-      bundledZstd = path.join(__dirname, '../bin/zstd/win/zstd.exe');
+      bundledZstd = path.join(unpackedPath, 'win/zstd.exe');
+      if (!fs.existsSync(bundledZstd)) {
+        bundledZstd = path.join(devPath, 'win/zstd.exe');
+      }
     } else {
-      bundledZstd = path.join(__dirname, '../bin/zstd/linux/zstd');
+      bundledZstd = path.join(unpackedPath, 'linux/zstd');
+      if (!fs.existsSync(bundledZstd)) {
+        bundledZstd = path.join(devPath, 'linux/zstd');
+      }
     }
 
     // Check if bundled binary exists, otherwise use system zstd

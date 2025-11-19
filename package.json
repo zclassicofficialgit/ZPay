@@ -58,6 +58,9 @@
     "appId": "com.zipher.wallet",
     "productName": "Zipher",
     "asar": true,
+    "asarUnpack": [
+      "bin/zstd/**/*"
+    ],
     "directories": {
       "buildResources": "build",
       "output": "dist"
