@@ -400,10 +400,13 @@ const extractBootstrap = (
 
     let filesExtracted = 0;
     let lastUpdate = Date.now();
+    let stderrOutput = '';
 
     // Monitor stderr for progress (tar outputs file names to stderr)
     extractProcess.stderr.on('data', (data) => {
-      const lines = data.toString().split('\n');
+      const dataStr = data.toString();
+      stderrOutput += dataStr;
+      const lines = dataStr.split('\n');
       filesExtracted += lines.length;
 
       // Update progress every 2 seconds
@@ -422,7 +425,9 @@ const extractBootstrap = (
         }
         resolve({ success: true });
       } else {
-        resolve({ success: false, error: `Extraction failed with code ${code}` });
+        // Include stderr output in error message
+        const errorDetails = stderrOutput ? `\nDetails: ${stderrOutput.slice(0, 500)}` : '';
+        resolve({ success: false, error: `Extraction failed with code ${code}${errorDetails}` });
       }
     });
 
