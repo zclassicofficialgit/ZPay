@@ -407,12 +407,12 @@ const extractBootstrap = (
       // Windows: use cmd.exe
       shell = 'cmd.exe';
       shellFlag = '/c';
-      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
+      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}"`;
     } else {
       // macOS/Linux: use sh
       shell = 'sh';
       shellFlag = '-c';
-      command = `${zstdCommand} -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
+      command = `${zstdCommand} -dc "${archivePath}" | tar -x -C "${destDir}"`;
     }
 
     const extractProcess = spawn(shell, [shellFlag, command], {
@@ -433,7 +433,9 @@ const extractBootstrap = (
       // Update progress every 2 seconds
       const now = Date.now();
       if (now - lastUpdate > 2000 && progressCallback) {
-        const estimatedProgress = Math.min(95, 10 + (filesExtracted / 1000) * 85);
+        // Bootstrap has ~270,000 files, so calculate progress more accurately
+        // Start at 10%, reach 95% at 270,000 files
+        const estimatedProgress = Math.min(95, 10 + (filesExtracted / 270000) * 85);
         progressCallback('extract', estimatedProgress, `Extracted ${filesExtracted.toLocaleString()} files...`);
         lastUpdate = now;
       }
