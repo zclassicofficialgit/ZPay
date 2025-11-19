@@ -178,17 +178,27 @@ const mapDispatchToProps = (dispatch: Dispatch): MapDispatchToProps => ({
       );
     }
 
-    const [, validationResult] = await eres(rpc.z_validateaddress(address));
+    try {
+      const [err, validationResult] = await eres(rpc.z_validateaddress(address));
 
-    if (validationResult) {
-      return dispatch(
-        validateAddressSuccess({
-          isValid: Boolean(validationResult && validationResult.isvalid),
-        }),
-      );
+      if (err) {
+        console.error('Address validation error:', err);
+        return dispatch(validateAddressError());
+      }
+
+      if (validationResult) {
+        return dispatch(
+          validateAddressSuccess({
+            isValid: Boolean(validationResult && validationResult.isvalid),
+          }),
+        );
+      }
+
+      return dispatch(validateAddressError());
+    } catch (error) {
+      console.error('Address validation exception:', error);
+      return dispatch(validateAddressError());
     }
-
-    return dispatch(validateAddressError());
   },
   loadAddresses: async () => {
     dispatch(loadAddresses());

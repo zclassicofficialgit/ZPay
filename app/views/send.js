@@ -532,7 +532,14 @@ class Component extends PureComponent<Props, State> {
       this.setState(
         () => ({ [field]: value }),
         () => {
-          validateAddress({ address: String(value) });
+          // Only validate if address is provided and not empty
+          if (value && String(value).trim()) {
+            try {
+              validateAddress({ address: String(value) });
+            } catch (error) {
+              console.error('Error calling validateAddress:', error);
+            }
+          }
           this.updateTooltipVisibility({
             balance,
             amount: new BigNumber(amount).toNumber(),
