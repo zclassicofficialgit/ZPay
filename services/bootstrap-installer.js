@@ -391,7 +391,7 @@ const extractBootstrap = (
       // macOS/Linux: use sh
       shell = 'sh';
       shellFlag = '-c';
-      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
+      command = `${zstdCommand} -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
     }
 
     const extractProcess = spawn(shell, [shellFlag, command], {
