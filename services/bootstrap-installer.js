@@ -407,12 +407,12 @@ const extractBootstrap = (
       // Windows: use cmd.exe
       shell = 'cmd.exe';
       shellFlag = '/c';
-      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}"`;
+      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
     } else {
       // macOS/Linux: use sh
       shell = 'sh';
       shellFlag = '-c';
-      command = `${zstdCommand} -dc "${archivePath}" | tar -x -C "${destDir}"`;
+      command = `${zstdCommand} -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
     }
 
     const extractProcess = spawn(shell, [shellFlag, command], {
