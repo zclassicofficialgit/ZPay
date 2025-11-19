@@ -58,9 +58,6 @@
     "appId": "com.zipher.wallet",
     "productName": "Zipher",
     "asar": true,
-    "asarUnpack": [
-      "bin/zstd/**/*"
-    ],
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -115,6 +112,13 @@
         {
           "from": "bin/mac",
           "to": "resources/bin/mac",
+          "filter": [
+            "**/*"
+          ]
+        },
+        {
+          "from": "bin/zstd/mac",
+          "to": "resources/bin/zstd/mac",
           "filter": [
             "**/*"
           ]

@@ -361,28 +361,28 @@ const extractBootstrap = (
     const platform = process.platform;
 
     // Determine bundled zstd path
-    // In production (app.asar), binaries are unpacked to app.asar.unpacked
-    // In development, they're in the source directory
+    // In production, extraFiles copies binaries to resources/bin/zstd/
+    // In development, they're in the source directory bin/zstd/
     let bundledZstd;
     let zstdCommand;
 
-    // Try to find the bundled binary in the unpacked resources first (production)
+    // Try to find the bundled binary in resources first (production)
     const resourcesPath = process.resourcesPath || path.join(__dirname, '..');
-    const unpackedPath = path.join(resourcesPath, 'app.asar.unpacked', 'bin', 'zstd');
+    const prodPath = path.join(resourcesPath, 'bin', 'zstd');
     const devPath = path.join(__dirname, '../bin/zstd');
 
     if (platform === 'darwin') {
-      bundledZstd = path.join(unpackedPath, 'mac/zstd');
+      bundledZstd = path.join(prodPath, 'mac/zstd');
       if (!fs.existsSync(bundledZstd)) {
         bundledZstd = path.join(devPath, 'mac/zstd');
       }
     } else if (platform === 'win32') {
-      bundledZstd = path.join(unpackedPath, 'win/zstd.exe');
+      bundledZstd = path.join(prodPath, 'win/zstd.exe');
       if (!fs.existsSync(bundledZstd)) {
         bundledZstd = path.join(devPath, 'win/zstd.exe');
       }
     } else {
-      bundledZstd = path.join(unpackedPath, 'linux/zstd');
+      bundledZstd = path.join(prodPath, 'linux/zstd');
       if (!fs.existsSync(bundledZstd)) {
         bundledZstd = path.join(devPath, 'linux/zstd');
       }
