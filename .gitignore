@@ -16,6 +16,9 @@ __mocks__
 
 # Binary files - compiled executables
 bin/
+# Exception: bundled zstd binaries for bootstrap extraction
+!bin/zstd/
+!bin/zstd/**
 
 # Build artifacts and logs
 *.log

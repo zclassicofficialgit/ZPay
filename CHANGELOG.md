@@ -27,11 +27,12 @@ All notable changes to Zipher will be documented in this file.
   - DNS pre-resolution to avoid timeout issues
   - 60-second timeout with proper error handling
   - Automatic retry on network failures
-- **JavaScript-Only Extraction**: Uses `@mongodb-js/zstd` and `tar-stream` libraries
-  - NO system command dependencies (tar, zstd)
-  - Pure JavaScript decompression and extraction
-  - Works on all platforms without external tools
-  - Real-time progress tracking (every 100 files)
+- **Fast Extraction**: Streaming decompression with bundled zstd binaries
+  - Handles large files > 2GB (JavaScript zstd library has 2GB limit)
+  - Bundled zstd binaries for macOS, Linux, and Windows (no installation required)
+  - Automatic fallback to system zstd if bundled binary not available
+  - Streaming extraction for efficient memory usage
+  - Real-time progress tracking with file count updates
 - **Integrity Verification**: SHA256 checksum verification for security
 - **Automatic Extraction**: Extracts directly to Zclassic data directory
 - **Wallet Backup**: Creates automatic wallet backup before installation

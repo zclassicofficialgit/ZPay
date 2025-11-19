@@ -334,91 +334,115 @@ const createWalletBackup = async (
   }
 };
 
-// Extract bootstrap with progress (uses JavaScript zstd library - no system commands!)
+// Extract bootstrap with progress (uses system tar command due to file size >2GB limitation)
 const extractBootstrap = (
   archivePath: string,
   destDir: string,
   progressCallback?: ProgressCallback,
-): Promise<{ success: boolean, error?: string }> => new Promise(async (resolve) => {
+): Promise<{ success: boolean, error?: string }> => new Promise((resolve) => {
   try {
     if (progressCallback) {
-      progressCallback('extract', 0, 'Reading compressed archive...');
+      progressCallback('extract', 0, 'Preparing extraction...');
     }
 
-    // Read the .tar.zst file
-    const compressedData = fs.readFileSync(archivePath);
-    const fileSize = compressedData.length;
-
+    const fileSize = fs.statSync(archivePath).size;
     if (progressCallback) {
-      progressCallback('extract', 10, `Decompressing ${(fileSize / 1024 / 1024 / 1024).toFixed(2)} GB with zstd...`);
+      progressCallback('extract', 5, `Extracting ${(fileSize / 1024 / 1024 / 1024).toFixed(2)} GB archive...`);
     }
 
-    // Decompress with zstd (JavaScript function - no command line!)
-    const decompressed = await zstd.decompress(compressedData);
+    // Use zstd to decompress and pipe to tar (works with large files)
+    // Try bundled binary first, fallback to system zstd
+    const { spawn } = require('child_process');
+    const platform = process.platform;
 
-    if (progressCallback) {
-      progressCallback('extract', 50, 'Extracting tar archive...');
+    // Determine bundled zstd path
+    let bundledZstd;
+    let zstdCommand;
+
+    if (platform === 'darwin') {
+      bundledZstd = path.join(__dirname, '../bin/zstd/mac/zstd');
+    } else if (platform === 'win32') {
+      bundledZstd = path.join(__dirname, '../bin/zstd/win/zstd.exe');
+    } else {
+      bundledZstd = path.join(__dirname, '../bin/zstd/linux/zstd');
     }
 
-    // Parse tar archive
-    const extract = tar.extract();
-    let filesExtracted = 0;
-    let totalSize = 0;
-
-    extract.on('entry', (header, stream, next) => {
-      filesExtracted++;
-
-      // Strip first directory component (like --strip-components=1)
-      const parts = header.name.split('/');
-      if (parts.length <= 1) {
-        stream.resume();
-        next();
-        return;
-      }
-      const strippedName = parts.slice(1).join('/');
-      const destPath = path.join(destDir, strippedName);
-
-      if (header.type === 'directory') {
-        // Create directory
-        fs.mkdirSync(destPath, { recursive: true });
-        stream.resume();
-        next();
-      } else if (header.type === 'file') {
-        // Create parent directory
-        const dirPath = path.dirname(destPath);
-        fs.mkdirSync(dirPath, { recursive: true });
-
-        // Write file
-        const writeStream = fs.createWriteStream(destPath);
-        stream.pipe(writeStream);
-        stream.on('end', () => {
-          totalSize += header.size || 0;
-          const progress = 50 + Math.min((totalSize / decompressed.length) * 50, 45);
-          if (filesExtracted % 100 === 0 && progressCallback) {
-            progressCallback('extract', progress, `Extracted ${filesExtracted} files...`);
-          }
-          next();
-        });
-      } else {
-        stream.resume();
-        next();
-      }
-    });
-
-    extract.on('finish', () => {
+    // Check if bundled binary exists, otherwise use system zstd
+    if (fs.existsSync(bundledZstd)) {
+      zstdCommand = bundledZstd;
       if (progressCallback) {
-        progressCallback('extract', 100, `Extraction complete - ${filesExtracted} files extracted`);
+        progressCallback('extract', 3, 'Using bundled zstd binary...');
       }
-      resolve({ success: true });
+    } else {
+      zstdCommand = 'zstd';
+      if (progressCallback) {
+        progressCallback('extract', 3, 'Using system zstd command...');
+      }
+    }
+
+    let shell, shellFlag, command;
+
+    if (platform === 'win32') {
+      // Windows: use cmd.exe
+      shell = 'cmd.exe';
+      shellFlag = '/c';
+      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
+    } else {
+      // macOS/Linux: use sh
+      shell = 'sh';
+      shellFlag = '-c';
+      command = `"${zstdCommand}" -dc "${archivePath}" | tar -x -C "${destDir}" --strip-components=1`;
+    }
+
+    const extractProcess = spawn(shell, [shellFlag, command], {
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    extract.on('error', (error) => {
-      resolve({ success: false, error: `Tar extraction error: ${error.message}` });
+    let filesExtracted = 0;
+    let lastUpdate = Date.now();
+
+    // Monitor stderr for progress (tar outputs file names to stderr)
+    extractProcess.stderr.on('data', (data) => {
+      const lines = data.toString().split('\n');
+      filesExtracted += lines.length;
+
+      // Update progress every 2 seconds
+      const now = Date.now();
+      if (now - lastUpdate > 2000 && progressCallback) {
+        const estimatedProgress = Math.min(95, 10 + (filesExtracted / 1000) * 85);
+        progressCallback('extract', estimatedProgress, `Extracted ${filesExtracted.toLocaleString()} files...`);
+        lastUpdate = now;
+      }
     });
 
-    // Write decompressed data to tar parser
-    extract.write(decompressed);
-    extract.end();
+    extractProcess.on('close', (code) => {
+      if (code === 0) {
+        if (progressCallback) {
+          progressCallback('extract', 100, `Extraction complete - ${filesExtracted.toLocaleString()} files extracted`);
+        }
+        resolve({ success: true });
+      } else {
+        resolve({ success: false, error: `Extraction failed with code ${code}` });
+      }
+    });
+
+    extractProcess.on('error', (error) => {
+      let errorMessage = `Extraction error: ${error.message}`;
+
+      // Check if zstd is not installed
+      if (error.code === 'ENOENT') {
+        errorMessage = 'zstd command not found. Please install zstd:\n';
+        if (platform === 'darwin') {
+          errorMessage += 'macOS: brew install zstd';
+        } else if (platform === 'win32') {
+          errorMessage += 'Windows: choco install zstd or scoop install zstd';
+        } else {
+          errorMessage += 'Linux: sudo apt install zstd or sudo yum install zstd';
+        }
+      }
+
+      resolve({ success: false, error: errorMessage });
+    });
   } catch (error) {
     resolve({ success: false, error: `Extraction error: ${error.message}` });
   }
