@@ -7,16 +7,50 @@ All notable changes to Zipher will be documented in this file.
 ### Added
 
 #### Blockchain Bootstrap Feature
-- Automated blockchain bootstrap download and installation
-- Detects when bootstrap is needed (missing or outdated blockchain data)
-- Downloads 7.73 GB bootstrap from GitHub releases (split into 5 parts)
-- Parallel download support for faster speeds
-- SHA256 checksum verification
-- Automatic extraction to Zclassic data directory
-- Progress tracking with status updates
-- User can skip or cancel installation
-- Comprehensive error handling and recovery
-- Components: `app/components/bootstrap-installer.js`, `services/bootstrap-installer.js`
+- **Pre-Daemon Bootstrap Check**: Checks for blockchain data BEFORE starting daemon
+- **Automatic Detection**: Detects missing or insufficient blockchain data on startup
+  - Checks if data directory exists
+  - Verifies blocks directory with minimum 10 block files
+  - Parses `debug.log` to read latest block height and date
+  - Detects if blockchain is > 30 days old (recommends bootstrap)
+  - Detects if block height < 100 (recommends bootstrap)
+- **User Choice Dialog**: Offers bootstrap download or network sync options
+- **Macintosh-Style Progress Window**: Shows real-time progress with retro aesthetic
+  - Step-by-step log with completed/running indicators (✓/▶)
+  - Global elapsed time in title bar (updates every second)
+  - Per-step duration tracking (e.g., "Downloaded 5/5 parts (2m 15s)")
+  - All steps remain visible (not erased) with completion times
+  - Black and white UI matching Zipher's classic Macintosh theme
+- **Smart Installation**: Downloads 7.73 GB bootstrap from GitHub releases (split into 5 parts)
+- **Parallel Download**: Faster download speeds with concurrent part downloads
+  - HTTP redirect handling for GitHub CDN (follows 301, 302, 307, 308)
+  - DNS pre-resolution to avoid timeout issues
+  - 60-second timeout with proper error handling
+  - Automatic retry on network failures
+- **JavaScript-Only Extraction**: Uses `@mongodb-js/zstd` and `tar-stream` libraries
+  - NO system command dependencies (tar, zstd)
+  - Pure JavaScript decompression and extraction
+  - Works on all platforms without external tools
+  - Real-time progress tracking (every 100 files)
+- **Integrity Verification**: SHA256 checksum verification for security
+- **Automatic Extraction**: Extracts directly to Zclassic data directory
+- **Wallet Backup**: Creates automatic wallet backup before installation
+- **Daemon Coordination**: Daemon only starts AFTER bootstrap completes
+- **Error Handling**: Comprehensive error handling and recovery with user feedback
+- **Components**:
+  - `config/daemon/pre-daemon-bootstrap.js` - Pre-daemon bootstrap checker with progress UI
+  - `app/components/bootstrap-installer.js` - React UI component (fallback)
+  - `services/bootstrap-installer.js` - Core bootstrap logic with JavaScript extraction
+- **Location**: Bootstrap check in `config/daemon/zclassicd-child-process.js:102-112`
+
+#### Daemon Configuration
+- RPC credentials now written to `zclassic.conf` (standard Bitcoin/Zcash approach)
+- Auto-generates random UUID credentials on first launch
+- Credentials written to both `zclassic.conf` AND electron-store for compatibility
+- Enabled transaction indexing (`txindex=1`) automatically written to `zclassic.conf`
+- Removed `-server=1`, `-rpcuser`, `-rpcpassword`, `-txindex` from command-line args (now in config file)
+- Allows manual daemon startup with same credentials from `zclassic.conf`
+- Location: `config/daemon/zclassicd-child-process.js:204-231`
 
 ### Fixed
 

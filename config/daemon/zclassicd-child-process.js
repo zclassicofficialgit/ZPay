@@ -24,6 +24,7 @@ import store from '../electron-store';
 import { parseZclassicConf, parseCmdArgs, generateArgsFromConf } from './parse-zclassic-conf';
 import { isTestnet } from '../is-testnet';
 import { getDaemonProcessId } from './get-daemon-process-id';
+import { checkAndInstallBootstrap } from './pre-daemon-bootstrap';
 import {
   EMBEDDED_DAEMON,
   ZCLASSIC_NETWORK,
@@ -32,7 +33,7 @@ import {
 } from '../../app/constants/zclassic-network';
 
 const getDaemonOptions = ({
-  username, password, useDefaultZclassicConf, optionsFromZclassicConf,
+  useDefaultZclassicConf, optionsFromZclassicConf,
 }) => {
   /*
     -showmetrics
@@ -45,12 +46,9 @@ const getDaemonOptions = ({
   */
 
   const defaultOptions = [
-    '-server=1',
     '-showmetrics=1',
     '-metricsui=0',
     '-metricsrefreshtime=1',
-    `-rpcuser=${username}`,
-    `-rpcpassword=${password}`,
     // ...(isTestnet() ? ['-testnet', '-addnode=testnet.z.classic'] : ['']),
     // Overwriting the settings with values taken from "zclassic.conf"
     ...optionsFromZclassicConf,
@@ -100,6 +98,18 @@ const runDaemon: () => Promise<?ChildProcess> = () => new Promise(async (resolve
 
   const processName = path.join(getBinariesPath(), getOsFolder(), 'zclassicd');
   const isRelaunch = Boolean(process.argv.find(arg => arg === '--relaunch'));
+
+  // STEP 0: Check if bootstrap is needed BEFORE starting daemon
+  // This prevents daemon from creating empty blockchain directories
+  log('Checking if blockchain bootstrap is needed...');
+  const [bootstrapErr, shouldProceed] = await eres(checkAndInstallBootstrap());
+
+  if (bootstrapErr || !shouldProceed) {
+    log('Bootstrap check failed or user cancelled - aborting daemon startup');
+    return reject(new Error('Bootstrap installation required but not completed'));
+  }
+
+  log('Bootstrap check complete - proceeding with daemon startup');
 
   if (!mainWindow.isDestroyed()) mainWindow.webContents.send('zclassicd-params-download', 'Fetching params...');
 
@@ -162,7 +172,7 @@ const runDaemon: () => Promise<?ChildProcess> = () => new Promise(async (resolve
     store.set(EMBEDDED_DAEMON, false);
     log(
       // eslint-disable-next-line
-        `A Zclassic daemon was found running in PID: ${daemonProcessId}. Starting ZPay in external daemon mode.`,
+        `A Zclassic daemon was found running in PID: ${daemonProcessId}. Starting Zipher in external daemon mode.`,
     );
 
     // Command line args override zclassic.conf
@@ -200,20 +210,42 @@ const runDaemon: () => Promise<?ChildProcess> = () => new Promise(async (resolve
     store.set(ZCLASSIC_NETWORK, optionsFromZclassicConf.testnet === '1' ? TESTNET : MAINNET);
   }
 
-  if (!optionsFromZclassicConf.rpcuser) store.set('rpcuser', uuid());
-  if (!optionsFromZclassicConf.rpcpassword) store.set('rpcpassword', uuid());
+  // Generate credentials if not in zclassic.conf
+  let rpcuser = optionsFromZclassicConf.rpcuser;
+  let rpcpassword = optionsFromZclassicConf.rpcpassword;
 
-  const rpcCredentials = {
-    username: store.get('rpcuser'),
-    password: store.get('rpcpassword'),
-  };
+  // Prepare config lines to write
+  const confPath = locateZclassicConf();
+  const configLines = [];
 
-  if (isDev) log('Rpc Credentials configured (credentials hidden for security)');
+  if (!rpcuser) {
+    rpcuser = uuid();
+    configLines.push(`rpcuser=${rpcuser}`);
+  }
+  if (!rpcpassword) {
+    rpcpassword = uuid();
+    configLines.push(`rpcpassword=${rpcpassword}`);
+  }
+  // Always ensure txindex is enabled
+  if (optionsFromZclassicConf.txindex !== '1') {
+    configLines.push('txindex=1');
+  }
+
+  // Write missing config to zclassic.conf
+  if (configLines.length > 0) {
+    fs.appendFileSync(confPath, '\n' + configLines.join('\n') + '\n');
+    log(`Configuration written to zclassic.conf: ${configLines.join(', ')}`);
+  }
+
+  // Also save credentials to electron-store so the app can read them for RPC connections
+  store.set('rpcuser', rpcuser);
+  store.set('rpcpassword', rpcpassword);
+
+  if (isDev) log('Daemon configuration loaded from zclassic.conf');
 
   const childProcess = cp.spawn(
     processName,
     getDaemonOptions({
-      ...rpcCredentials,
       useDefaultZclassicConf,
       optionsFromZclassicConf: generateArgsFromConf(optionsFromZclassicConf),
     }),

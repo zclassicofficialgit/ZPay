@@ -27,6 +27,9 @@ module.exports = {
     events: 'commonjs events',
     child_process: 'commonjs child_process',
     electron: 'commonjs electron',
+    // Bootstrap extraction libraries (used in main process, not renderer)
+    '@mongodb-js/zstd': 'commonjs @mongodb-js/zstd',
+    'tar-stream': 'commonjs tar-stream',
   },
   module: {
     rules: [

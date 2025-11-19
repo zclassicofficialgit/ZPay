@@ -12,7 +12,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
+const http = require('http');
+const url = require('url');
+const dns = require('dns');
 const { spawn } = require('child_process');
+const zstd = require('@mongodb-js/zstd');
+const tar = require('tar-stream');
 
 type ProgressCallback = (stage: string, progress: number, message: string) => void;
 
@@ -57,52 +62,122 @@ export const fetchBootstrapMetadata = async (): Promise<{
   }
 };
 
-// Download file with progress tracking
+// Download file with progress tracking (follows redirects)
 const downloadFile = (
   url: string,
   destPath: string,
-  progressCallback?: ProgressCallback
+  progressCallback?: ProgressCallback,
+  maxRedirects: number = 5
 ): Promise<{ success: boolean, error?: string }> => {
   return new Promise((resolve) => {
-    const file = fs.createWriteStream(destPath);
+    // Delete existing file if it exists (from interrupted download)
+    if (fs.existsSync(destPath)) {
+      try {
+        fs.unlinkSync(destPath);
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+
+    let file;
+    try {
+      file = fs.createWriteStream(destPath);
+    } catch (err) {
+      resolve({ success: false, error: `Cannot create file: ${err.message}` });
+      return;
+    }
+
     let downloadedBytes = 0;
     let totalBytes = 0;
 
-    https
-      .get(url, (response) => {
-        if (response.statusCode !== 200) {
-          resolve({ success: false, error: `HTTP ${response.statusCode}` });
+    const handleResponse = (response, redirectCount = 0) => {
+      // Handle redirects (301, 302, 307, 308)
+      if ([301, 302, 307, 308].includes(response.statusCode)) {
+        if (redirectCount >= maxRedirects) {
+          file.end();
+          resolve({ success: false, error: `Too many redirects (${redirectCount})` });
           return;
         }
 
-        totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+        const redirectUrl = response.headers.location;
+        if (!redirectUrl) {
+          file.end();
+          resolve({ success: false, error: 'Redirect without location header' });
+          return;
+        }
 
-        response.on('data', (chunk) => {
-          downloadedBytes += chunk.length;
-          file.write(chunk);
+        // Parse redirect URL to determine protocol
+        const parsedUrl = url.parse(redirectUrl);
+        const protocol = parsedUrl.protocol === 'https:' ? https : http;
 
-          if (progressCallback && totalBytes > 0) {
-            const progress = (downloadedBytes / totalBytes) * 100;
-            const mbDownloaded = (downloadedBytes / 1024 / 1024).toFixed(1);
-            const mbTotal = (totalBytes / 1024 / 1024).toFixed(1);
-            progressCallback(
-              'download',
-              progress,
-              `Downloaded ${mbDownloaded} MB / ${mbTotal} MB`
-            );
+        // Pre-resolve DNS to avoid DNS resolution timeouts
+        dns.resolve4(parsedUrl.hostname, (dnsErr, addresses) => {
+          if (dnsErr) {
+            // DNS resolution failed - try the request anyway, Node.js will do its own resolution
+            console.log(`DNS pre-resolution failed for ${parsedUrl.hostname}: ${dnsErr.message}, attempting request anyway`);
+          } else {
+            console.log(`DNS resolved ${parsedUrl.hostname} to ${addresses[0]}`);
           }
-        });
 
-        response.on('end', () => {
-          file.end();
-          resolve({ success: true });
-        });
+          // Follow redirect with appropriate protocol and timeout
+          const request = protocol.get(redirectUrl, {
+            timeout: 60000, // 60 second timeout
+          }, (redirectResponse) => {
+            handleResponse(redirectResponse, redirectCount + 1);
+          });
 
-        response.on('error', (error) => {
-          file.end();
-          resolve({ success: false, error: error.message });
+          request.on('timeout', () => {
+            request.destroy();
+            file.end();
+            resolve({ success: false, error: `Request timeout for ${parsedUrl.hostname}` });
+          });
+
+          request.on('error', (error) => {
+            file.end();
+            resolve({ success: false, error: `Redirect to ${parsedUrl.hostname} failed: ${error.message}` });
+          });
         });
-      })
+        return;
+      }
+
+      // Check for success
+      if (response.statusCode !== 200) {
+        file.end();
+        resolve({ success: false, error: `HTTP ${response.statusCode}` });
+        return;
+      }
+
+      totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+
+      response.on('data', (chunk) => {
+        downloadedBytes += chunk.length;
+        file.write(chunk);
+
+        if (progressCallback && totalBytes > 0) {
+          const progress = (downloadedBytes / totalBytes) * 100;
+          const mbDownloaded = (downloadedBytes / 1024 / 1024).toFixed(1);
+          const mbTotal = (totalBytes / 1024 / 1024).toFixed(1);
+          progressCallback(
+            'download',
+            progress,
+            `Downloaded ${mbDownloaded} MB / ${mbTotal} MB`
+          );
+        }
+      });
+
+      response.on('end', () => {
+        file.end();
+        resolve({ success: true });
+      });
+
+      response.on('error', (error) => {
+        file.end();
+        resolve({ success: false, error: error.message });
+      });
+    };
+
+    https
+      .get(url, handleResponse)
       .on('error', (error) => {
         file.end();
         resolve({ success: false, error: error.message });
@@ -262,54 +337,96 @@ const createWalletBackup = async (
   }
 };
 
-// Extract bootstrap with progress (uses zstd compression)
+// Extract bootstrap with progress (uses JavaScript zstd library - no system commands!)
 const extractBootstrap = (
   archivePath: string,
   destDir: string,
   progressCallback?: ProgressCallback
 ): Promise<{ success: boolean, error?: string }> => {
-  return new Promise((resolve) => {
-    if (progressCallback) {
-      progressCallback('extract', 0, 'Extracting bootstrap...');
-    }
-
-    // Use tar with zstd decompression
-    const tar = spawn('tar', [
-      '--use-compress-program=zstd',
-      '-xf',
-      archivePath,
-      '-C',
-      destDir,
-      '--strip-components=1',
-    ]);
-
-    let lastProgress = 0;
-
-    // Estimate progress based on time (tar doesn't provide real progress)
-    const progressInterval = setInterval(() => {
-      lastProgress = Math.min(lastProgress + 5, 95);
+  return new Promise(async (resolve) => {
+    try {
       if (progressCallback) {
-        progressCallback('extract', lastProgress, 'Extracting blockchain data...');
+        progressCallback('extract', 0, 'Reading compressed archive...');
       }
-    }, 2000);
 
-    tar.on('close', (code) => {
-      clearInterval(progressInterval);
+      // Read the .tar.zst file
+      const compressedData = fs.readFileSync(archivePath);
+      const fileSize = compressedData.length;
 
-      if (code === 0) {
+      if (progressCallback) {
+        progressCallback('extract', 10, `Decompressing ${(fileSize / 1024 / 1024 / 1024).toFixed(2)} GB with zstd...`);
+      }
+
+      // Decompress with zstd (JavaScript function - no command line!)
+      const decompressed = await zstd.decompress(compressedData);
+
+      if (progressCallback) {
+        progressCallback('extract', 50, 'Extracting tar archive...');
+      }
+
+      // Parse tar archive
+      const extract = tar.extract();
+      let filesExtracted = 0;
+      let totalSize = 0;
+
+      extract.on('entry', (header, stream, next) => {
+        filesExtracted++;
+
+        // Strip first directory component (like --strip-components=1)
+        const parts = header.name.split('/');
+        if (parts.length <= 1) {
+          stream.resume();
+          next();
+          return;
+        }
+        const strippedName = parts.slice(1).join('/');
+        const destPath = path.join(destDir, strippedName);
+
+        if (header.type === 'directory') {
+          // Create directory
+          fs.mkdirSync(destPath, { recursive: true });
+          stream.resume();
+          next();
+        } else if (header.type === 'file') {
+          // Create parent directory
+          const dirPath = path.dirname(destPath);
+          fs.mkdirSync(dirPath, { recursive: true });
+
+          // Write file
+          const writeStream = fs.createWriteStream(destPath);
+          stream.pipe(writeStream);
+          stream.on('end', () => {
+            totalSize += header.size || 0;
+            const progress = 50 + Math.min((totalSize / decompressed.length) * 50, 45);
+            if (filesExtracted % 100 === 0 && progressCallback) {
+              progressCallback('extract', progress, `Extracted ${filesExtracted} files...`);
+            }
+            next();
+          });
+        } else {
+          stream.resume();
+          next();
+        }
+      });
+
+      extract.on('finish', () => {
         if (progressCallback) {
-          progressCallback('extract', 100, 'Extraction complete');
+          progressCallback('extract', 100, `Extraction complete - ${filesExtracted} files extracted`);
         }
         resolve({ success: true });
-      } else {
-        resolve({ success: false, error: `Extraction failed with code ${code}` });
-      }
-    });
+      });
 
-    tar.on('error', (error) => {
-      clearInterval(progressInterval);
-      resolve({ success: false, error: error.message });
-    });
+      extract.on('error', (error) => {
+        resolve({ success: false, error: `Tar extraction error: ${error.message}` });
+      });
+
+      // Write decompressed data to tar parser
+      extract.write(decompressed);
+      extract.end();
+
+    } catch (error) {
+      resolve({ success: false, error: `Extraction error: ${error.message}` });
+    }
   });
 };
 
@@ -386,42 +503,78 @@ export const installBootstrap = async (
       return { success: false, error: 'Failed to create wallet backup' };
     }
 
-    // Step 3: Create temp download directory
-    if (!fs.existsSync(downloadDir)) {
-      fs.mkdirSync(downloadDir, { recursive: true });
+    // Step 3: Create temp download directory (clean up any previous attempts)
+    if (fs.existsSync(downloadDir)) {
+      // Remove old incomplete downloads
+      try {
+        fs.rmSync(downloadDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        // If cleanup fails, try to continue anyway
+        log(`Warning: Could not clean up old download directory: ${cleanupError.message}`);
+      }
     }
 
-    // Step 4: Download all parts
+    fs.mkdirSync(downloadDir, { recursive: true });
+
+    // Step 4: Download all parts IN PARALLEL for faster speeds
     const baseName = `zclassic-bootstrap-${tag.replace('bootstrap-', '')}`;
     const partFiles = [];
 
+    // Track progress for all parts
+    const partProgress = {};
+    for (let i = 1; i <= total_parts; i++) {
+      partProgress[i] = 0;
+    }
+
+    // Create download promises for all parts
+    const downloadPromises = [];
     for (let i = 1; i <= total_parts; i++) {
       const partNum = String(i).padStart(2, '0');
       const partFilename = `${baseName}-part-${partNum}.part`;
       const partUrl = `${base_url}/${partFilename}`;
       const partPath = path.join(downloadDir, partFilename);
 
-      if (progressCallback) {
-        progressCallback(
-          'download',
-          0,
-          `Downloading part ${i}/${total_parts}...`
-        );
-      }
-
-      const [downloadErr, downloadResult] = await eres(
-        downloadFile(partUrl, partPath, (stage, progress, message) => {
-          if (progressCallback) {
-            progressCallback(stage, progress, `Part ${i}/${total_parts}: ${message}`);
-          }
-        })
-      );
-
-      if (downloadErr || !downloadResult || !downloadResult.success) {
-        return { success: false, error: `Failed to download part ${i}: ${downloadResult?.error}` };
-      }
-
       partFiles.push(partPath);
+
+      // Create download promise
+      const downloadPromise = downloadFile(partUrl, partPath, (stage, progress, message) => {
+        // Update progress for this part
+        partProgress[i] = progress;
+
+        // Calculate overall progress (average of all parts)
+        const totalProgress = Object.values(partProgress).reduce((sum, p) => sum + p, 0) / total_parts;
+
+        // Count completed parts
+        const completedParts = Object.values(partProgress).filter(p => p >= 100).length;
+
+        if (progressCallback) {
+          progressCallback(
+            'download',
+            totalProgress,
+            `Downloading ${completedParts}/${total_parts} parts complete (${totalProgress.toFixed(0)}%)`
+          );
+        }
+      }).then(result => ({ partNum: i, result }));
+
+      downloadPromises.push(downloadPromise);
+    }
+
+    if (progressCallback) {
+      progressCallback('download', 0, `Starting parallel download of ${total_parts} parts...`);
+    }
+
+    // Download all parts in parallel
+    const downloadResults = await Promise.all(downloadPromises);
+
+    // Check if all downloads succeeded
+    for (const { partNum, result } of downloadResults) {
+      if (!result.success) {
+        return { success: false, error: `Failed to download part ${partNum}: ${result.error}` };
+      }
+    }
+
+    if (progressCallback) {
+      progressCallback('download', 100, `All ${total_parts} parts downloaded successfully!`);
     }
 
     // Step 5: Combine parts into single archive
@@ -472,12 +625,13 @@ export const installBootstrap = async (
         fs.unlinkSync(combinedPath);
       }
 
-      // Remove temp directory
+      // Remove temp directory and all its contents
       if (fs.existsSync(downloadDir)) {
-        fs.rmdirSync(downloadDir);
+        fs.rmSync(downloadDir, { recursive: true, force: true });
       }
     } catch (e) {
-      // Non-critical error
+      // Non-critical error - log but continue
+      console.error('Cleanup error:', e.message);
     }
 
     if (progressCallback) {
